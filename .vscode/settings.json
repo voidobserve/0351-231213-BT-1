@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "time0.h": "c",
+        "pwm.h": "c",
+        "my_config.h": "c",
+        "adc.h": "c",
+        "include.h": "c",
+        "debug.h": "c",
+        "tx8c126x_amp.h": "c"
+    }
+}

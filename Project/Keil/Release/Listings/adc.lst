@@ -1,0 +1,422 @@
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE ADC
+OBJECT MODULE PLACED IN .\Release\Objects\adc.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\User\adc.c LARGE OPTIMIZE(8,SPEED) BROWSE INTVECTOR(0X000C) INCDIR
+                    -(..\..\Libraries\Include;..\..\User) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\Listings\adc.lst) OBJECT(.\Release\O
+                    -bjects\adc.obj)
+
+line level    source
+
+   1          #include "adc.h"
+   2          #include "my_config.h"
+   3          
+   4          float Vol_val = 0;
+   5          u16 Vol_val_all[10];   // ´æ·ÅadÖµÕý³£µÄÊý×é
+   6          u16 Vol_val_jump[10];  // ´æ·ÅadÖµÌø±äµÄÊý×é
+   7          u8 index_jump = 0;     // Ìø±äµÄÊý×éµÄÔªËØ¼ÆÊýÖµ
+   8          u8 index = 0;          // adÖµÕý³£µÄÊý×éµÄÔªËØ¼ÆÊýÖµ
+   9          volatile u16 adc0_val; // adc²É¼¯µ½µÄµçÑ¹Öµ
+  10          
+  11          // ´æ·ÅÎÂ¶È×´Ì¬µÄ±äÁ¿
+  12          volatile u8 temp_status = TEMP_NORMAL;
+  13          
+  14          // Ã°ÅÝÅÅÐò£¨ÉýÐò£©
+  15          void Pubble_Sort(u16 *arr, u8 length)
+  16          {
+  17   1          int i = 0;
+  18   1          int j = 0;
+  19   1          for (i = 0; i < length - 1; i++)
+  20   1          {
+  21   2              for (j = 0; j < length - 1 - i; j++)
+  22   2              {
+  23   3                  if (arr[j] > arr[j + 1])
+  24   3                  {
+  25   4                      int temp = arr[j];
+  26   4                      arr[j] = arr[j + 1];
+  27   4                      arr[j + 1] = temp;
+  28   4                  }
+  29   3              }
+  30   2          }
+  31   1      }
+  32          
+  33          // adcÏà¹ØµÄÒý½ÅÅäÖÃ
+  34          void adc_pin_config(void)
+  35          {
+  36   1          // P30--8½ÅÅäÖÃÎªÄ£ÄâÊäÈëÄ£Ê½
+  37   1          P3_MD0 |= GPIO_P30_MODE_SEL(0x3);
+  38   1      
+  39   1          // P27--9½ÅÅäÖÃÎªÄ£ÄâÊäÈëÄ£Ê½
+  40   1          P2_MD1 |= GPIO_P27_MODE_SEL(0x3);
+  41   1      }
+  42          
+  43          // ÇÐ»»adc²É¼¯µÄÒý½Å£¬ÅäÖÃºÃadc
+  44          // ²ÎÊý¿ÉÒÔÑ¡Ôñ£º
+  45          // ADC_SEL_PIN_GET_TEMP
+  46          // ADC_SEL_PIN_GET_VOL
+  47          void adc_sel_pin(const u8 adc_sel)
+  48          {
+  49   1          // ÇÐ»»²É¼¯Òý½ÅÊ±£¬°ÑÖ®Ç°²É¼¯µ½µÄadÖµÇå¿Õ
+  50   1          adc0_val = 0;
+  51   1      
+  52   1          switch (adc_sel)
+  53   1          {
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 2   
+
+  54   2          case ADC_SEL_PIN_GET_TEMP: // ²É¼¯ÈÈÃôµç×è¶ÔÓ¦µÄµçÑ¹µÄÒý½Å£¨8½Å£©
+  55   2      
+  56   2              // ADCÅäÖÃ
+  57   2              ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0) | ADC_INREF_SEL(0)); // ¹Ø±ÕÍâ²¿²Î¿¼µçÑ¹£¬¹Ø±Õ
+             -ÄÚ²¿²Î¿¼µçÑ¹
+  58   2              ADC_ACON1 |= ADC_VREF_SEL(0x6) |                                         // Ñ¡ÔñÄÚ²¿²Î¿¼µçÑ¹VCCA
+  59   2                           ADC_TEN_SEL(0x3);                                           // ¹Ø±Õ²âÊÔÐÅºÅ
+  60   2              ADC_ACON0 = ADC_CMP_EN(0x1) |                                            // ´ò¿ªADCÖÐµÄCMPÊ¹ÄÜÐÅºÅ
+  61   2                          ADC_BIAS_EN(0x1) |                                           // ´ò¿ªADCÆ«ÖÃµçÁ÷ÄÜÊ¹ÐÅº
+             -Å
+  62   2                          ADC_BIAS_SEL(0x1);                                           // Æ«ÖÃµçÁ÷£º1x
+  63   2      
+  64   2              ADC_CHS0 = ADC_ANALOG_CHAN(0x18) | // Ñ¡ÔòÒý½Å¶ÔÓ¦µÄÍ¨µÀ£¨0x18--P30£©
+  65   2                         ADC_EXT_SEL(0x0);       // Ñ¡ÔñÍâ²¿Í¨µÀ
+  66   2              ADC_CFG0 |= ADC_CHAN0_EN(0x1) |    // Ê¹ÄÜÍ¨µÀ0×ª»»
+  67   2                          ADC_EN(0x1);           // Ê¹ÄÜA/D×ª»»
+  68   2              break;
+  69   2      
+  70   2          case ADC_SEL_PIN_GET_VOL: // ¼ì²â»ØÂ·µçÑ¹µÄÒý½Å£¨9½Å£©
+  71   2      
+  72   2              // ADCÅäÖÃ
+  73   2              ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0) | ADC_INREF_SEL(0)); // ¹Ø±ÕÍâ²¿²Î¿¼µçÑ¹
+  74   2              ADC_ACON1 |= ADC_VREF_SEL(0x6) |                                         // Ñ¡ÔñÄÚ²¿²Î¿¼µçÑ¹VCCA
+  75   2                           ADC_TEN_SEL(0x3);
+  76   2              ADC_ACON0 = ADC_CMP_EN(0x1) |      // ´ò¿ªADCÖÐµÄCMPÊ¹ÄÜÐÅºÅ
+  77   2                          ADC_BIAS_EN(0x1) |     // ´ò¿ªADCÆ«ÖÃµçÁ÷ÄÜÊ¹ÐÅºÅ
+  78   2                          ADC_BIAS_SEL(0x1);     // Æ«ÖÃµçÁ÷£º1x
+  79   2              ADC_CHS0 = ADC_ANALOG_CHAN(0x17) | // Ñ¡ÔòÒý½Å¶ÔÓ¦µÄÍ¨µÀ£¨0x17--P27£©
+  80   2                         ADC_EXT_SEL(0x0);       // Ñ¡ÔñÍâ²¿Í¨µÀ
+  81   2              ADC_CFG0 |= ADC_CHAN0_EN(0x1) |    // Ê¹ÄÜÍ¨µÀ0×ª»»
+  82   2                          ADC_EN(0x1);           // Ê¹ÄÜA/D×ª»»
+  83   2              break;
+  84   2          }
+  85   1      
+  86   1          delay_ms(1); // µÈ´ýADCÎÈ¶¨
+  87   1      }
+  88          
+  89          // adcÍê³ÉÒ»´Î×ª»»
+  90          // ×ª»»ºÃµÄÖµ·ÅÈëÈ«¾Ö±äÁ¿ adc0_val ÖÐ
+  91          // ÐèÒª×¢Òâ£¬Õâ¿îÐ¾Æ¬µÄadc²»ÄÜÆµ·±²É¼¯£¬ÐèÒªÑÓÊ±Ò»ÏÂÔÙ²É¼¯Ò»´Î
+  92          void adc_single_getval(void)
+  93          {
+  94   1          ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // ´¥·¢ADC0×ª»»
+  95   1          while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
+  96   1              ;                                             // µÈ´ý×ª»»Íê³É
+  97   1          adc0_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // ¶ÁÈ¡channel0µÄÖµ
+  98   1          ADC_STA = ADC_CHAN0_DONE(0x1);                    // Çå³ýADC0×ª»»Íê³É±êÖ¾Î»
+  99   1      }
+ 100          
+ 101          // Çå³ý»º³åÇøÒÔ¼°±êÖ¾Î»
+ 102          // ÔÚ²»¸ù¾Ý9½ÅµçÑ¹À´µ÷½ÚPWMÕ¼¿Õ±ÈÊ±Ê¹ÓÃ
+ 103          void __clear_buff(void)
+ 104          {
+ 105   1          // Çå¿ÕÌø±äÊý×éµÄÄÚÈÝºÍÏÂ±ê
+ 106   1          memset(Vol_val_jump, 0, sizeof(Vol_val_jump));
+ 107   1          index_jump = 0;
+ 108   1          // Çå¿ÕÕý³£ÖµÊý×éµÄÄÚÈÝºÍÏÂ±ê
+ 109   1          memset(Vol_val_all, 0, sizeof(Vol_val_all));
+ 110   1          index = 0;
+ 111   1      }
+ 112          
+ 113          // ²É¼¯Ò»´ÎadcÖµ£¬Èç¹ûÀÛ¼Æ²É¼¯ÁË10´ÎÌø±ä/Î´Ìø±äµÄadcÖµ£¬Ôò½øÐÐÂË²¨£¬ÔÙ¸ù¾ÝÂË²¨ºóµÄ½á¹û½øÐÐPWMµ÷½Ú
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 3   
+
+ 114          void adc_scan_according_pin9(void)
+ 115          {
+ 116   1          ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // ´¥·¢ADC0×ª»»
+ 117   1          while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
+ 118   1              ;                                             // µÈ´ý×ª»»Íê³É
+ 119   1          ADC_STA = ADC_CHAN0_DONE(0x1);                    // Çå³ýADC0×ª»»Íê³É±êÖ¾Î»
+ 120   1          adc0_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // ¶ÁÈ¡channel0µÄÖµ
+ 121   1      
+ 122   1          // ÅÐ¶ÏadÖµÊÇ·ñÌø±ä£¬Ìø±äÁË·ÅÔÚÌø±äµÄÊý×é£¬Î´Ìø±ä·ÅÔÚÕý³£ÖµÊý×é    0.5v»»ËãadÖµ´ó¸ÅÊÇ400×óÓÒ£¬Òò´ËÉè¶¨
+             -100   0.12v
+ 123   1          if (((adc0_val - Vol_val) > 100) || ((Vol_val - adc0_val) > 100))
+ 124   1          {
+ 125   2              Vol_val_jump[index_jump] = adc0_val;
+ 126   2              index_jump++;
+ 127   2          }
+ 128   1          else
+ 129   1          {
+ 130   2              Vol_val_all[index] = adc0_val;
+ 131   2              index++;
+ 132   2      
+ 133   2              // Çå¿ÕÌø±äÊý×éµÄÄÚÈÝºÍÏÂ±ê
+ 134   2              memset(Vol_val_jump, 0, sizeof(Vol_val_jump));
+ 135   2              index_jump = 0;
+ 136   2          }
+ 137   1      
+ 138   1          // ÅÐ¶ÏÁ¬ÐøµÄ´ÎÊý£¬Ìø±äµÄÖµÏÈµ½´ï10»¹ÊÇÕý³£µÄÖµÏÈµ½´ï10£¬ÈôÌø±äÖµÏÈµ½´ïÖµËµÃ÷ÊÇµ÷µçÑ¹µ¼ÖÂµÄ£¬·´Ö®ÊÇÓÉÓ
+             -ÚµçÑ¹²¨¶¯µ¼ÖÂµÄ£¬Ôò¼ÌÐøÊä³öÕý³£ÖµÊý×é
+ 139   1          if (index >= 10)
+ 140   1          {
+ 141   2              u32 sum = 0;
+ 142   2              u8 i = 0;
+ 143   2              // Çå¿ÕÌø±äÊý×éµÄÄÚÈÝºÍÏÂ±ê
+ 144   2              memset(Vol_val_jump, 0, sizeof(Vol_val_jump));
+ 145   2              index_jump = 0;
+ 146   2      
+ 147   2              Pubble_Sort(Vol_val_all, 10); // Ã°ÅÝÅÅÐò
+ 148   2      #if 0
+                              printf("--------------------------------\n");
+                              for(i = 0 ; i<10 ; i++)
+                              {
+                                      printf( "Vol_val_all[%bd] %d\n",i,Vol_val_all[i]);
+                              }
+                              printf("--------------------------------\n");
+              #endif
+ 156   2              for (i = 1; i < 9; i++) // È¥µô×î´óÖµºÍ×îÐ¡Öµ
+ 157   2              {
+ 158   3                  sum += Vol_val_all[i];
+ 159   3              }
+ 160   2      
+ 161   2              Vol_val = sum >> 3; // Ïàµ±ÓÚ³ýÒÔ8£¬¶ÔÊý×éÖÐµÄÔªËØÇóÁËÆ½¾ùÖµ
+ 162   2      
+ 163   2              sum = 0;
+ 164   2              index = 0;
+ 165   2              _My_Adjust_Pwm(Vol_val); // ¸ù¾ÝÂË²¨ºÃµÄµçÑ¹Öµ½øÐÐPWMµÄµ÷½Ú
+ 166   2          }
+ 167   1          else
+ 168   1          {
+ 169   2              if (index_jump >= 10)
+ 170   2              {
+ 171   3                  u32 sum = 0;
+ 172   3                  u8 i = 0;
+ 173   3                  // Çå¿ÕÕý³£ÖµÊý×éµÄÄÚÈÝºÍÏÂ±ê
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 4   
+
+ 174   3                  memset(Vol_val_all, 0, sizeof(Vol_val_all));
+ 175   3                  index = 0;
+ 176   3      
+ 177   3                  Pubble_Sort(Vol_val_jump, 10); // Ã°ÅÝÅÅÐò
+ 178   3      
+ 179   3                  for (i = 1; i < 9; i++) // È¥µô×î´óÖµºÍ×îÐ¡Öµ
+ 180   3                  {
+ 181   4                      sum += Vol_val_jump[i];
+ 182   4                  }
+ 183   3      
+ 184   3                  Vol_val = sum >> 3; // Ïàµ±ÓÚ³ýÒÔ8£¬¶ÔÊý×éÖÐµÄÔªËØÇóÁËÆ½¾ùÖµ
+ 185   3      
+ 186   3                  sum = 0;
+ 187   3                  index_jump = 0;
+ 188   3                  _My_Adjust_Pwm(Vol_val); // ¸ù¾ÝÂË²¨ºÃµÄµçÑ¹Öµ½øÐÐPWMµÄµ÷½Ú
+ 189   3              }
+ 190   2          }
+ 191   1      
+ 192   1          adc0_val = 0;
+ 193   1      }
+ 194          
+ 195          // ´ÓÒý½ÅÉÏ²É¼¯ÂË²¨ºóµÄµçÑ¹Öµ
+ 196          u32 get_voltage_from_pin(void)
+ 197          {
+ 198   1          u8 i = 0;                      // Ñ­»·¼ÆÊýÖµ
+ 199   1          volatile u32 adc_aver_val = 0; // ´æ·ÅadcÂË²¨ºóµÄÖµ
+ 200   1          // ²É¼¯ÈÈÃôµç×èµÄµçÑ¹
+ 201   1          for (i = 0; i < 3; i++)
+ 202   1          {
+ 203   2              adc_single_getval(); // adcµ¥´Î×ª»»
+ 204   2      
+ 205   2              // adcÂË²¨
+ 206   2              adc_aver_val += adc0_val;
+ 207   2              if (i >= 1)
+ 208   2              {
+ 209   3                  adc_aver_val >>= 1;
+ 210   3              }
+ 211   2              delay_ms(20); // Òª¼ÓÉÏÑÓÊ±£¬·ñÔòÆµ·±²É¼¯adc»áÓÐºÜ´óµÄÎó²î
+ 212   2          }
+ 213   1      
+ 214   1          // ½«ÂË²¨ºóµÄadcÖµ×ª»»³ÉµçÑ¹Öµ
+ 215   1          // 4095£¨adc×ª»»ºó£¬¿ÉÄÜ³öÏÖµÄ×î´óµÄÖµ£© * 0.00122 == 4.9959£¬Ô¼µÈÓÚ5V£¨VCC£©
+ 216   1          // return adc_aver_val * 122 / 100;
+ 217   1      
+ 218   1          // 4095£¨adc×ª»»ºó£¬¿ÉÄÜ³öÏÖµÄ×î´óµÄÖµ£© * 0.0012 == 4.914£¬Ô¼µÈÓÚ5V£¨VCC£©
+ 219   1          return adc_aver_val * 12 / 10;
+ 220   1      }
+ 221          
+ 222          void adc_scan(void)
+ 223          {
+ 224   1          volatile u32 voltage = 0; // ´æ·Åadc²É¼¯µ½µÄµçÑ¹£¬µ¥Î»£ºmV
+ 225   1      
+ 226   1          if (TEMP_75_30MIN == temp_status)
+ 227   1          {
+ 228   2              // Èç¹ûÒÑ¾­³¬¹ý75ÉãÊÏ¶ÈÇÒ³¬¹ý30min£¬²»ÓÃÔÙ¼ì²â8½ÅµÄµçÑ¹£¬µÈ´ýÓÃ»§ÅÅ²éÔ­Òò£¬ÔÙÖØÆô£¨ÖØÐÂÉÏµç£©
+ 229   2              return;
+ 230   2          }
+ 231   1      
+ 232   1          adc0_val = 0;
+ 233   1          adc_sel_pin(ADC_SEL_PIN_GET_TEMP); // ÏÈÇÐ»»³ÉÈÈÃôµç×è¶ÔÓ¦µÄÒý½ÅµÄadcÅäÖÃ
+ 234   1          // voltage = get_voltage_from_pin();  // ²É¼¯ÈÈÃôµç×èÉÏµÄµçÑ¹
+ 235   1      
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 5   
+
+ 236   1      #if USE_MY_DEBUG
+                  printf("PIN-8 voltage: %lu mV\n", voltage);
+              #endif // USE_MY_DEBUG
+ 239   1      
+ 240   1          // Èç¹ûÖ®Ç°µÄÎÂ¶ÈÎªÕý³££¬¼ì²âÊÇ·ñ³¬¹ý75ÉãÊÏ¶È£¨¡À5ÉãÊÏ¶È£©
+ 241   1          if (TEMP_NORMAL == temp_status && voltage < VOLTAGE_TEMP_75)
+ 242   1          {
+ 243   2              // Èç¹û¼ì²âµ½ÎÂ¶È´óÓÚ75ÉãÊÏ¶È£¨²âµÃµÄµçÑ¹ÖµÒªÐ¡ÓÚ75ÉãÊÏ¶È¶ÔÓ¦µÄµçÑ¹Öµ£©
+ 244   2      
+ 245   2              // ¼ì²â10´Î£¬Èç¹û10´Î¶¼Ð¡ÓÚÕâ¸öµçÑ¹Öµ£¬²ÅËµÃ÷ÎÂ¶ÈÕæµÄ´óÓÚ75ÉãÊÏ¶È
+ 246   2              u8 i = 0;
+ 247   2              for (i = 0; i < 10; i++)
+ 248   2              {
+ 249   3                  voltage = get_voltage_from_pin(); // ²É¼¯ÈÈÃôµç×èÉÏµÄµçÑ¹
+ 250   3                  if (voltage > VOLTAGE_TEMP_75)
+ 251   3                  {
+ 252   4                      // Ö»ÒªÓÐÒ»´ÎÎÂ¶ÈÐ¡ÓÚ75ÉãÊÏ¶È£¬¾ÍÈÏÎªÎÂ¶ÈÃ»ÓÐ´óÓÚ75ÉãÊÏ¶È
+ 253   4                      temp_status = TEMP_NORMAL;
+ 254   4                      return;
+ 255   4                  }
+ 256   3              }
+ 257   2      
+ 258   2              // Èç¹ûÔËÐÐµ½ÕâÀï£¬ËµÃ÷ÎÂ¶ÈÈ·Êµ´óÓÚ75ÉãÊÏ¶È
+ 259   2      #if USE_MY_DEBUG
+                      printf("ÎÂ¶È³¬¹ýÁË75ÉãÊÏ¶È\n");
+                      printf("´ËÊ±²É¼¯µ½µÄµçÑ¹Öµ£º%lu mV", voltage);
+              #endif
+ 263   2              temp_status = TEMP_75; // ×´Ì¬±êÖ¾ÉèÖÃÎª³¬¹ý75ÉãÊÏ¶È
+ 264   2              __clear_buff();        // Çå³ý9½ÅµçÑ¹¼ì²âÊ¹ÓÃµ½µÄ»º³åÇøºÍ±êÖ¾Î»
+ 265   2              return;                // º¯Êý·µ»Ø£¬ÈÃµ÷½ÚÕ¼¿Õ±ÈµÄº¯ÊýÏÈ½øÐÐµ÷½Ú
+ 266   2          }
+ 267   1          else if (temp_status == TEMP_75)
+ 268   1          {
+ 269   2              // Èç¹ûÖ®Ç°µÄÎÂ¶È³¬¹ý75ÉãÊÏ¶È
+ 270   2              static bit tmr1_is_open = 0;
+ 271   2      
+ 272   2              if (0 == tmr1_is_open)
+ 273   2              {
+ 274   3                  tmr1_is_open = 1;
+ 275   3                  tmr1_cnt = 0;
+ 276   3                  tmr1_enable(); // ´ò¿ª¶¨Ê±Æ÷£¬¿ªÊ¼¼ÇÂ¼ÊÇ·ñ´óÓÚ75ÉãÊÏ¶ÈÇÒ³¬¹ý30min
+ 277   3              }
+ 278   2      
+ 279   2              // while (1) // Õâ¸öwhileÑ­»·»áÓ°Ïìµ½9½Åµ÷½Ú16½ÅµçÑ¹µÄ¹¦ÄÜ
+ 280   2              // {
+ 281   2      #if 0 // ÕâÀïµÄ´úÂëÔÚ¿Í»§ÄÇ±ß·´¶ø³öÏÖÎÊÌâ£¬³¬¹ý90ÉãÊÏ¶ÈÇÒ1¸öÐ¡Ê±¶¼Ã»ÓÐ½«PWM½µµ½25%£¬
+                    // ¿ÉÄÜÊÇÓÃ»§ÄÇ±ßµÄµçÑ¹ÓÐÌø±ä£¬µ¼ÖÂÕâÀïÇå¿ÕÁË¶¨Ê±Æ÷¼ÆÊý
+                          if (voltage > VOLTAGE_TEMP_75)
+                          {
+                              // Ö»ÒªÓÐÒ»´ÎÎÂ¶ÈÐ¡ÓÚ75ÉãÊÏ¶È£¬¾ÍÈÏÎªÎÂ¶ÈÃ»ÓÐ´óÓÚ75ÉãÊÏ¶È
+                              temp_status = TEMP_75; // ÎÂ¶È±ê¼ÇÎª³¬¹ý75ÉãÊÏ¶È£¬µ«ÊÇÃ»ÓÐÀÛ¼Æ30min
+                              tmr1_disable();        // ¹Ø±Õ¶¨Ê±Æ÷
+                              tmr1_cnt = 0;          // Çå¿ÕÊ±¼ä¼ÆÊýÖµ
+              #if USE_MY_DEBUG
+                              printf("ÔÚÎÂ¶È³¬¹ýÁË75ÉãÊÏ¶ÈÊ±£¬¼ì²âµ½ÓÐÒ»´ÎÎÂ¶ÈÃ»ÓÐ³¬¹ý75ÉãÊÏ¶È\n");
+                              printf("´ËÊ±²É¼¯µ½µÄµçÑ¹Öµ£º%lu mV\n", voltage);
+              #endif
+                              return;
+                          }
+              #endif
+ 296   2      
+ 297   2              if (tmr1_cnt >= (u32)TMR1_CNT_30_MINUTES)
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 6   
+
+ 298   2              {
+ 299   3                  // Èç¹û³¬¹ý75ÉãÊÏ¶È²¢ÇÒ¹ýÁË30min£¬ÔÙ¼ì²âÎÂ¶ÈÊÇ·ñ³¬¹ý75ÉãÊÏ¶È
+ 300   3      #if USE_MY_DEBUG
+                          printf("ÎÂ¶È³¬¹ýÁË75ÉãÊÏ¶ÈÇÒ³¬¹ýÁË30min\n");
+                          printf("´ËÊ±²É¼¯µ½µÄµçÑ¹Öµ£º%lu mV\n", voltage);
+              #endif
+ 304   3                  u8 i = 0;
+ 305   3                  for (i = 0; i < 10; i++)
+ 306   3                  {
+ 307   4                      voltage = get_voltage_from_pin(); // ²É¼¯ÈÈÃôµç×èÉÏµÄµçÑ¹
+ 308   4                      if (voltage > VOLTAGE_TEMP_75)
+ 309   4                      {
+ 310   5                          // Ö»ÒªÓÐÒ»´ÎÎÂ¶ÈÐ¡ÓÚ75ÉãÊÏ¶È£¬¾ÍÈÏÎªÎÂ¶ÈÃ»ÓÐ´óÓÚ75ÉãÊÏ¶È
+ 311   5                          temp_status = TEMP_75;
+ 312   5                          return;
+ 313   5                      }
+ 314   4                  }
+ 315   3      
+ 316   3                  // Èç¹ûÔËÐÐµ½ÕâÀï£¬ËµÃ÷ÉÏÃæÁ¬Ðø¡¢¶à´Î¼ì²âµ½µÄÎÂ¶È¶¼´óÓÚ75ÉãÊÏ¶È
+ 317   3                  temp_status = TEMP_75_30MIN;
+ 318   3                  tmr1_disable(); // ¹Ø±Õ¶¨Ê±Æ÷
+ 319   3                  tmr1_cnt = 0;   // Çå¿ÕÊ±¼ä¼ÆÊýÖµ
+ 320   3                  tmr1_is_open = 0;
+ 321   3                  return;
+ 322   3              }
+ 323   2              // }  // while(1)
+ 324   2          }
+ 325   1      }
+ 326          
+ 327          // ¸ù¾ÝÎÂ¶È£¨µçÑ¹ÖµÉ¨Ãè£©»ò9½ÅµÄ×´Ì¬À´Éè¶¨Õ¼¿Õ±È
+ 328          void set_duty(void)
+ 329          {
+ 330   1          static bit tmr0_is_open = 0;
+ 331   1      
+ 332   1          // Èç¹ûÎÂ¶ÈÕý³££¬¸ù¾Ý9½ÅµÄ×´Ì¬À´µ÷½ÚPWMÕ¼¿Õ±È
+ 333   1          if (TEMP_NORMAL == temp_status)
+ 334   1          {
+ 335   2              if (tmr0_is_open == 0)
+ 336   2              {
+ 337   3                  tmr0_is_open = 1;
+ 338   3                  tmr0_enable(); // ´ò¿ª¶¨Ê±Æ÷0£¬¿ªÊ¼¸ù¾Ý9½ÅµÄ×´Ì¬À´µ÷½ÚPWMÂö¿í
+ 339   3              }
+ 340   2      
+ 341   2              if (tmr0_flag == 1)
+ 342   2              {
+ 343   3                  tmr0_flag = 0;
+ 344   3                  adc0_val = 0;                     // Çå³ýÖ®Ç°²É¼¯µ½µÄµçÑ¹Öµ
+ 345   3                  adc_sel_pin(ADC_SEL_PIN_GET_VOL); // ÇÐ»»µ½9½Å¶ÔÓ¦µÄadcÅäÖÃ
+ 346   3                  adc_scan_according_pin9();
+ 347   3                  // Éè¶¨Õ¼¿Õ±È
+ 348   3                  while (c_duty != adjust_duty)
+ 349   3                  {
+ 350   4                      Adaptive_Duty(); // µ÷½ÚÕ¼¿Õ±È
+ 351   4                  }
+ 352   3              }
+ 353   2      
+ 354   2      #if USE_MY_DEBUG
+                      // printf("cur duty: %d\n", c_duty);
+              #endif
+ 357   2          }
+ 358   1          else if (TEMP_75 == temp_status)
+ 359   1          {
+C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 7   
+
+ 360   2              // Èç¹ûÎÂ¶È³¬¹ýÁË75ÉãÊÏ¶ÈÇÒÀÛ¼Æ10min
+ 361   2              tmr0_disable(); // ¹Ø±Õ¶¨Ê±Æ÷0£¬²»ÒÔ9½ÅµÄµçÑ¹À´µ÷½ÚPWM
+ 362   2              tmr0_is_open = 0;
+ 363   2              // Éè¶¨Õ¼¿Õ±È
+ 364   2              adjust_duty = PWM_DUTY_50_PERCENT;
+ 365   2              while (c_duty != adjust_duty)
+ 366   2              {
+ 367   3                  Adaptive_Duty(); // µ÷½ÚÕ¼¿Õ±È
+ 368   3              }
+ 369   2          }
+ 370   1          else if (TEMP_75_30MIN == temp_status)
+ 371   1          {
+ 372   2              tmr0_disable(); // ¹Ø±Õ¶¨Ê±Æ÷0£¬²»ÒÔ9½ÅµÄµçÑ¹À´µ÷½ÚPWM
+ 373   2              tmr0_is_open = 0;
+ 374   2              // Éè¶¨Õ¼¿Õ±È
+ 375   2              adjust_duty = PWM_DUTY_25_PERCENT;
+ 376   2              while (c_duty != adjust_duty)
+ 377   2              {
+ 378   3                  Adaptive_Duty(); // µ÷½ÚÕ¼¿Õ±È
+ 379   3              }
+ 380   2          }
+ 381   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1635    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     49      22
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
