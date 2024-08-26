@@ -22,7 +22,7 @@
 // #define TMR1_CNT_30_MINUTES 18000UL // 3min
 
 // 在热敏电阻端检测的电压值与温度对应的关系，电压值单位：mV
-#define VOLTAGE_TEMP_75 (3050) // 这一个值在客户那边测试出来是74摄氏度,对应的电压是3.1V
+#define VOLTAGE_TEMP_75 (3050) // 这一个值在客户那边测试出来是74摄氏度,对应的电压是3.1V（实际测得是在2.73V左右）
 
 // #define VOLTAGE_TEMP_75 (2990) // 75摄氏度对应的电压值
 // #define VOLTAGE_TEMP_65 (3388) // 65摄氏度对应的电压值

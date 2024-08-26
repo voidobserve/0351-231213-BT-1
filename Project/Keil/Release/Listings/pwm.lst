@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 11:52:55 PAGE 1   
+C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 14:26:31 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE PWM
@@ -62,7 +62,7 @@ line level    source
   51   1          ////////////控制14脚///////////////////   100 -> 80   7.5ms          80 -> 50  5ms     100 -> 50  3ms
   52   1      
   53   1          // // 当9脚电压高于1.9V时，14脚输出100%的PWM信号
-C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 11:52:55 PAGE 2   
+C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 14:26:31 PAGE 2   
 
   54   1          // if (P9_Vol > 1.90) // 输出100%
   55   1          
@@ -126,7 +126,7 @@ line level    source
  113   1          volatile u32 adc_aver_val = 0;    // 存放adc滤波后的值
  114   1          adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
  115   1      
-C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 11:52:55 PAGE 3   
+C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 14:26:31 PAGE 3   
 
  116   1          // 采集电压
  117   1          for (i = 0; i < 10; i++)

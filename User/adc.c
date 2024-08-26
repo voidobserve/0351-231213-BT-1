@@ -233,7 +233,7 @@ void adc_scan(void)
 
     adc0_val = 0;
     adc_sel_pin(ADC_SEL_PIN_GET_TEMP); // 先切换成热敏电阻对应的引脚的adc配置
-    // voltage = get_voltage_from_pin();  // 采集热敏电阻上的电压
+    voltage = get_voltage_from_pin();  // 采集热敏电阻上的电压
 
 #if USE_MY_DEBUG
     printf("PIN-8 voltage: %lu mV\n", voltage);
@@ -300,12 +300,12 @@ void adc_scan(void)
         // 如果超过75摄氏度并且过了5min，再检测温度是否超过75摄氏度
         if (tmr1_cnt >= (u32)TMR1_CNT_5_MINUTES)
         {
-
+			u8 i = 0;
 #if USE_MY_DEBUG
             printf("温度超过了75摄氏度且超过了30min\n");
             printf("此时采集到的电压值：%lu mV\n", voltage);
 #endif
-            u8 i = 0;
+            
             for (i = 0; i < 10; i++)
             {
                 voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
