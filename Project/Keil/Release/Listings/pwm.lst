@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   PWM                                                               07/01/2024 14:06:54 PAGE 1   
+C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 11:52:55 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE PWM
@@ -61,119 +61,125 @@ line level    source
   50   1          //  printf("P9_Vol %d\n",P9_Vol);
   51   1          ////////////控制14脚///////////////////   100 -> 80   7.5ms          80 -> 50  5ms     100 -> 50  3ms
   52   1      
-  53   1          // 当9脚电压高于1.9V时，14脚输出100%的PWM信号
-C51 COMPILER V9.60.7.0   PWM                                                               07/01/2024 14:06:54 PAGE 2   
+  53   1          // // 当9脚电压高于1.9V时，14脚输出100%的PWM信号
+C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 11:52:55 PAGE 2   
 
-  54   1          if (P9_Vol > 1.90) // 输出100%
-  55   1          {
-  56   2              //      printf(" P9_Vol : %f.... 100\n",P9_Vol);
-  57   2              adjust_duty = 6000;
-  58   2              max_flag = 1;
-  59   2          }
-  60   1          else if (P9_Vol > 1.6 && P9_Vol < 1.9) // 缓降80%
-  61   1          {
-  62   2              // 9脚电压在1.6~1.9V时，14脚输出的占空比从100%缓降到80%
-  63   2      
-  64   2              //      printf(" P9_Vol : %f...... 80\n",P9_Vol);
-  65   2              if (max_flag == 1)
-  66   2              {
-  67   3                  if (P9_Vol < 1.85)
-  68   3                  {
-  69   4                      adjust_duty = 4800;
-  70   4                      max_flag = 0;
-  71   4                  }
-  72   3              }
-  73   2              else
-  74   2              {
-  75   3                  adjust_duty = 4800;
-  76   3              }
-  77   2      
-  78   2              if (c_duty >= adjust_duty)
-  79   2                  jump_flag = 1;
-  80   2          }
-  81   1          else if (P9_Vol < 1.6) // 缓降50%  并且维持50%
-  82   1          {
-  83   2              // 9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
-  84   2      
-  85   2              // printf(" P9_Vol : %f...... 50\n",P9_Vol);
-  86   2              // adjust_duty = 3000;
-  87   2              adjust_duty = PWM_DUTY_50_PERCENT;
-  88   2              max_flag = 0;
-  89   2              if (c_duty >= adjust_duty)
-  90   2                  jump_flag = 1;
-  91   2          }
-  92   1          ///////////////控制16脚//////////////////
-  93   1          // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通。
-  94   1          if (P9_Vol > 2.7) // 16脚输出1KHZ的高电平
-  95   1          {
-  96   2              P14 = 1;
-  97   2          }
-  98   1          else // 16脚输出1KHZ的低电平
+  54   1          // if (P9_Vol > 1.90) // 输出100%
+  55   1          
+  56   1          // 当9脚电压大于1.6V时，14脚输出100%的PWM信号
+  57   1          if (P9_Vol > 1.6) // 输出100%
+  58   1          {
+  59   2              //      printf(" P9_Vol : %f.... 100\n",P9_Vol);
+  60   2              adjust_duty = PWM_DUTY_100_PERCENT;
+  61   2              max_flag = 1;
+  62   2          }
+  63   1          // else if (P9_Vol > 1.6 && P9_Vol < 1.9) // 缓降80%
+  64   1          // {
+  65   1          //     // 9脚电压在1.6~1.9V时，14脚输出的占空比从100%缓降到80%
+  66   1          //     //   printf(" P9_Vol : %f...... 80\n",P9_Vol);
+  67   1          //     if (max_flag == 1)
+  68   1          //     {
+  69   1          //         if (P9_Vol < 1.85)
+  70   1          //         {
+  71   1          //             adjust_duty = 4800;
+  72   1          //             max_flag = 0;
+  73   1          //         }
+  74   1          //     }
+  75   1          //     else
+  76   1          //     {
+  77   1          //         adjust_duty = 4800;
+  78   1          //     }
+  79   1      
+  80   1          //     if (c_duty >= adjust_duty)
+  81   1          //         jump_flag = 1;
+  82   1          // }
+  83   1          else if (P9_Vol < 1.6) // 缓降50%  并且维持50%
+  84   1          {
+  85   2              // 9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
+  86   2      
+  87   2              // 9脚电压小于1.6V，14脚输出的占空比缓降至50%，并保持50%
+  88   2              // printf(" P9_Vol : %f...... 50\n",P9_Vol);
+  89   2              // adjust_duty = 3000;
+  90   2              adjust_duty = PWM_DUTY_50_PERCENT;
+  91   2              max_flag = 0;
+  92   2              if (c_duty >= adjust_duty)
+  93   2                  jump_flag = 1;
+  94   2          }
+  95   1      
+  96   1          ///////////////控制16脚//////////////////
+  97   1          // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通。
+  98   1          if (P9_Vol > 2.7) // 16脚输出1KHZ的高电平
   99   1          {
- 100   2              P14 = 0;
+ 100   2              P14 = 1;
  101   2          }
- 102   1      }
- 103          
- 104          // 根据9脚的电压来设定16脚的电平
- 105          void according_pin9_to_adjust_pin16(void)
- 106          {
- 107   1          u8 i = 0;                         // 循环计数值
- 108   1          u8 cnt = 0;                       // 计数值
- 109   1          volatile u32 adc_aver_val = 0;    // 存放adc滤波后的值
- 110   1          adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
- 111   1      
- 112   1          // 采集电压
- 113   1          for (i = 0; i < 10; i++)
- 114   1          {
- 115   2              adc_aver_val = get_voltage_from_pin();
-C51 COMPILER V9.60.7.0   PWM                                                               07/01/2024 14:06:54 PAGE 3   
+ 102   1          else // 16脚输出1KHZ的低电平
+ 103   1          {
+ 104   2              P14 = 0;
+ 105   2          }
+ 106   1      }
+ 107          
+ 108          // 根据9脚的电压来设定16脚的电平
+ 109          void according_pin9_to_adjust_pin16(void)
+ 110          {
+ 111   1          u8 i = 0;                         // 循环计数值
+ 112   1          u8 cnt = 0;                       // 计数值
+ 113   1          volatile u32 adc_aver_val = 0;    // 存放adc滤波后的值
+ 114   1          adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
+ 115   1      
+C51 COMPILER V9.60.7.0   PWM                                                               08/26/2024 11:52:55 PAGE 3   
 
- 116   2              if (adc_aver_val >= 2700)
- 117   2              {
- 118   3                  // 如果从9脚上采集的电压大于2.7V
- 119   3                  cnt++;
- 120   3              }
- 121   2          }
- 122   1      
- 123   1          // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通（用于关机）。
- 124   1          if (cnt == 10)
- 125   1          {
- 126   2              // 如果多次检测都满足条件，才认为9脚的电压确实大于2.7V
- 127   2              P14 = 1;
- 128   2          }
- 129   1          else
- 130   1          {
- 131   2              P14 = 0;
+ 116   1          // 采集电压
+ 117   1          for (i = 0; i < 10; i++)
+ 118   1          {
+ 119   2              adc_aver_val = get_voltage_from_pin();
+ 120   2              if (adc_aver_val >= 2700)
+ 121   2              {
+ 122   3                  // 如果从9脚上采集的电压大于2.7V
+ 123   3                  cnt++;
+ 124   3              }
+ 125   2          }
+ 126   1      
+ 127   1          // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通（用于关机）。
+ 128   1          if (cnt == 10)
+ 129   1          {
+ 130   2              // 如果多次检测都满足条件，才认为9脚的电压确实大于2.7V
+ 131   2              P14 = 1;
  132   2          }
- 133   1      }
- 134          
- 135          // 缓慢调节占空比（缓慢提升和缓慢下降）
- 136          void Adaptive_Duty(void)
- 137          {
- 138   1          if (c_duty > adjust_duty)
- 139   1          {
- 140   2              c_duty--;
- 141   2          }
- 142   1          if (c_duty < adjust_duty)
+ 133   1          else
+ 134   1          {
+ 135   2              P14 = 0;
+ 136   2          }
+ 137   1      }
+ 138          
+ 139          // 缓慢调节占空比（缓慢提升和缓慢下降）
+ 140          void Adaptive_Duty(void)
+ 141          {
+ 142   1          if (c_duty > adjust_duty)
  143   1          {
- 144   2              c_duty++;
+ 144   2              c_duty--;
  145   2          }
- 146   1          set_pwm_duty();
- 147   1      
- 148   1          if (c_duty >= 5800)
- 149   1          {
- 150   2      
- 151   2              delay_ms(15); // 时间还需要测试调整一下
- 152   2          }
- 153   1          else
- 154   1          {
- 155   2              delay_ms(5);
- 156   2          }
- 157   1      }
+ 146   1          if (c_duty < adjust_duty)
+ 147   1          {
+ 148   2              c_duty++;
+ 149   2          }
+ 150   1          set_pwm_duty();
+ 151   1      
+ 152   1          if (c_duty >= 5800)
+ 153   1          {
+ 154   2      
+ 155   2              // delay_ms(15); // 时间还需要测试调整一下
+ 156   2              delay_ms(7);
+ 157   2          }
+ 158   1          else
+ 159   1          {
+ 160   2              // delay_ms(5);
+ 161   2              delay_ms(3);
+ 162   2          }
+ 163   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =    611    ----
+   CODE SIZE        =    475    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =      4      14
    PDATA SIZE       =   ----    ----

@@ -13,7 +13,9 @@
 // tmr1配置成每10ms产生一次中断，计数值加一，
 // 这里定义时间对应的计数值
 
-#define TMR1_CNT_30_MINUTES 180000UL // 30min（这个是可以在30min后调节PWM占空比的）
+// #define TMR1_CNT_30_MINUTES 180000UL // 30min（这个是可以在30min后调节PWM占空比的）
+
+#define TMR1_CNT_5_MINUTES 30000UL // 5min
 
 // // 测试用的计数值
 // #define TMR1_CNT_30_MINUTES 1000 // 10s
@@ -31,7 +33,8 @@ enum
 {
     TEMP_NORMAL,   // 正常温度
     TEMP_75,       // 超过75摄氏度（±5摄氏度）
-    TEMP_75_30MIN, // 超过75摄氏度（±5摄氏度）30min
+    // TEMP_75_30MIN, // 超过75摄氏度（±5摄氏度）30min
+    TEMP_75_5_MIN, // 超过75摄氏度（±5摄氏度）5min
 };
 
 #endif

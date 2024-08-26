@@ -6,6 +6,7 @@
         "adc.h": "c",
         "include.h": "c",
         "debug.h": "c",
-        "tx8c126x_amp.h": "c"
+        "tx8c126x_amp.h": "c",
+        "timer1.h": "c"
     }
 }

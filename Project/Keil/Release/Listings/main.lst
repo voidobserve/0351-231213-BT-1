@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   MAIN                                                              07/01/2024 14:06:54 PAGE 1   
+C51 COMPILER V9.60.7.0   MAIN                                                              08/26/2024 11:52:55 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
@@ -62,7 +62,7 @@ line level    source
                   UART0_BAUD0 = USER_UART0_BAUD & 0xFF;        // 配置波特率低八位
                   UART0_CON0 = UART_STOP_BIT(0x0) |
                                UART_EN(0x1); // 8bit数据，1bit停止位
-C51 COMPILER V9.60.7.0   MAIN                                                              07/01/2024 14:06:54 PAGE 2   
+C51 COMPILER V9.60.7.0   MAIN                                                              08/26/2024 11:52:55 PAGE 2   
 
               }
               #endif // USE_MY_DEBUG
@@ -123,10 +123,10 @@ line level    source
  110   1      
  111   1          while (1)
  112   1          {
- 113   2              adc_scan();                       // 检测热敏电阻一端的电压值
+ 113   2              adc_scan();                       // 检测热敏电阻一端的电压值（每次循环，至少要60ms）
  114   2              set_duty();                       // 设定到要调节到的脉宽
  115   2              according_pin9_to_adjust_pin16(); // 根据9脚的电压来设定16脚的电平
-C51 COMPILER V9.60.7.0   MAIN                                                              07/01/2024 14:06:54 PAGE 3   
+C51 COMPILER V9.60.7.0   MAIN                                                              08/26/2024 11:52:55 PAGE 3   
 
  116   2              // Adaptive_Duty(); // 调节脉宽
  117   2          }

@@ -223,9 +223,11 @@ void adc_scan(void)
 {
     volatile u32 voltage = 0; // 存放adc采集到的电压，单位：mV
 
-    if (TEMP_75_30MIN == temp_status)
+    // 如果已经超过75摄氏度且超过30min，不用再检测8脚的电压，等待用户排查原因，再重启（重新上电）
+    // if (TEMP_75_30MIN == temp_status)
+    // 如果已经超过75摄氏度且超过5min，不用再检测8脚的电压，等待用户排查原因，再重启（重新上电）
+    if (TEMP_75_5_MIN == temp_status)
     {
-        // 如果已经超过75摄氏度且超过30min，不用再检测8脚的电压，等待用户排查原因，再重启（重新上电）
         return;
     }
 
@@ -293,10 +295,12 @@ void adc_scan(void)
                 return;
             }
 #endif
-
-        if (tmr1_cnt >= (u32)TMR1_CNT_30_MINUTES)
+        // 如果超过75摄氏度并且过了30min，再检测温度是否超过75摄氏度
+        // if (tmr1_cnt >= (u32)TMR1_CNT_30_MINUTES)
+        // 如果超过75摄氏度并且过了5min，再检测温度是否超过75摄氏度
+        if (tmr1_cnt >= (u32)TMR1_CNT_5_MINUTES)
         {
-            // 如果超过75摄氏度并且过了30min，再检测温度是否超过75摄氏度
+
 #if USE_MY_DEBUG
             printf("温度超过了75摄氏度且超过了30min\n");
             printf("此时采集到的电压值：%lu mV\n", voltage);
@@ -314,7 +318,8 @@ void adc_scan(void)
             }
 
             // 如果运行到这里，说明上面连续、多次检测到的温度都大于75摄氏度
-            temp_status = TEMP_75_30MIN;
+            // temp_status = TEMP_75_30MIN;
+            temp_status = TEMP_75_5_MIN;
             tmr1_disable(); // 关闭定时器
             tmr1_cnt = 0;   // 清空时间计数值
             tmr1_is_open = 0;
@@ -367,7 +372,8 @@ void set_duty(void)
             Adaptive_Duty(); // 调节占空比
         }
     }
-    else if (TEMP_75_30MIN == temp_status)
+    // else if (TEMP_75_30MIN == temp_status)
+    else if (TEMP_75_5_MIN == temp_status)
     {
         tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
         tmr0_is_open = 0;

@@ -50,38 +50,41 @@ void _My_Adjust_Pwm(float Val)
     //	printf("P9_Vol %d\n",P9_Vol);
     ////////////控制14脚///////////////////   100 -> 80   7.5ms          80 -> 50  5ms     100 -> 50  3ms
 
-    // 当9脚电压高于1.9V时，14脚输出100%的PWM信号
-    if (P9_Vol > 1.90) // 输出100%
+    // // 当9脚电压高于1.9V时，14脚输出100%的PWM信号
+    // if (P9_Vol > 1.90) // 输出100%
+    
+    // 当9脚电压大于1.6V时，14脚输出100%的PWM信号
+    if (P9_Vol > 1.6) // 输出100%
     {
         //	printf(" P9_Vol : %f.... 100\n",P9_Vol);
-        adjust_duty = 6000;
+        adjust_duty = PWM_DUTY_100_PERCENT;
         max_flag = 1;
     }
-    else if (P9_Vol > 1.6 && P9_Vol < 1.9) // 缓降80%
-    {
-        // 9脚电压在1.6~1.9V时，14脚输出的占空比从100%缓降到80%
+    // else if (P9_Vol > 1.6 && P9_Vol < 1.9) // 缓降80%
+    // {
+    //     // 9脚电压在1.6~1.9V时，14脚输出的占空比从100%缓降到80%
+    //     //	printf(" P9_Vol : %f...... 80\n",P9_Vol);
+    //     if (max_flag == 1)
+    //     {
+    //         if (P9_Vol < 1.85)
+    //         {
+    //             adjust_duty = 4800;
+    //             max_flag = 0;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         adjust_duty = 4800;
+    //     }
 
-        //	printf(" P9_Vol : %f...... 80\n",P9_Vol);
-        if (max_flag == 1)
-        {
-            if (P9_Vol < 1.85)
-            {
-                adjust_duty = 4800;
-                max_flag = 0;
-            }
-        }
-        else
-        {
-            adjust_duty = 4800;
-        }
-
-        if (c_duty >= adjust_duty)
-            jump_flag = 1;
-    }
+    //     if (c_duty >= adjust_duty)
+    //         jump_flag = 1;
+    // }
     else if (P9_Vol < 1.6) // 缓降50%  并且维持50%
     {
         // 9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
 
+        // 9脚电压小于1.6V，14脚输出的占空比缓降至50%，并保持50%
         // printf(" P9_Vol : %f...... 50\n",P9_Vol);
         // adjust_duty = 3000;
         adjust_duty = PWM_DUTY_50_PERCENT;
@@ -89,6 +92,7 @@ void _My_Adjust_Pwm(float Val)
         if (c_duty >= adjust_duty)
             jump_flag = 1;
     }
+
     ///////////////控制16脚//////////////////
     // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通。
     if (P9_Vol > 2.7) // 16脚输出1KHZ的高电平
@@ -148,10 +152,12 @@ void Adaptive_Duty(void)
     if (c_duty >= 5800)
     {
 
-        delay_ms(15); // 时间还需要测试调整一下
+        // delay_ms(15); // 时间还需要测试调整一下
+        delay_ms(7);
     }
     else
     {
-        delay_ms(5);
+        // delay_ms(5);
+        delay_ms(3);
     }
 }

@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   DEBUG                                                             07/01/2024 14:06:54 PAGE 1   
+C51 COMPILER V9.60.7.0   DEBUG                                                             08/26/2024 11:39:51 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE DEBUG
@@ -62,7 +62,7 @@ line level    source
   51          void debug_putchar(u8 uart_data)
   52          {
   53   1          while (!(UART1_STA & UART_TX_DONE(0x01)))
-C51 COMPILER V9.60.7.0   DEBUG                                                             07/01/2024 14:06:54 PAGE 2   
+C51 COMPILER V9.60.7.0   DEBUG                                                             08/26/2024 11:39:51 PAGE 2   
 
   54   1              ;
   55   1          UART1_DATA = uart_data;

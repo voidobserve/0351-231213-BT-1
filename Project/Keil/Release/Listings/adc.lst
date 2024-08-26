@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 1   
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE ADC
@@ -62,7 +62,7 @@ line level    source
   51   1      
   52   1          switch (adc_sel)
   53   1          {
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 2   
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 2   
 
   54   2          case ADC_SEL_PIN_GET_TEMP: // 采集热敏电阻对应的电压的引脚（8脚）
   55   2      
@@ -126,7 +126,7 @@ line level    source
  111   1      }
  112          
  113          // 采集一次adc值，如果累计采集了10次跳变/未跳变的adc值，则进行滤波，再根据滤波后的结果进行PWM调节
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 3   
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 3   
 
  114          void adc_scan_according_pin9(void)
  115          {
@@ -190,7 +190,7 @@ line level    source
  171   3                  u32 sum = 0;
  172   3                  u8 i = 0;
  173   3                  // 清空正常值数组的内容和下标
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 4   
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 4   
 
  174   3                  memset(Vol_val_all, 0, sizeof(Vol_val_all));
  175   3                  index = 0;
@@ -244,64 +244,66 @@ line level    source
  223          {
  224   1          volatile u32 voltage = 0; // 存放adc采集到的电压，单位：mV
  225   1      
- 226   1          if (TEMP_75_30MIN == temp_status)
- 227   1          {
- 228   2              // 如果已经超过75摄氏度且超过30min，不用再检测8脚的电压，等待用户排查原因，再重启（重新上电）
- 229   2              return;
- 230   2          }
- 231   1      
- 232   1          adc0_val = 0;
- 233   1          adc_sel_pin(ADC_SEL_PIN_GET_TEMP); // 先切换成热敏电阻对应的引脚的adc配置
- 234   1          // voltage = get_voltage_from_pin();  // 采集热敏电阻上的电压
- 235   1      
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 5   
+ 226   1          // 如果已经超过75摄氏度且超过30min，不用再检测8脚的电压，等待用户排查原因，再重启（重新上电）
+ 227   1          // if (TEMP_75_30MIN == temp_status)
+ 228   1          // 如果已经超过75摄氏度且超过5min，不用再检测8脚的电压，等待用户排查原因，再重启（重新上电）
+ 229   1          if (TEMP_75_5_MIN == temp_status)
+ 230   1          {
+ 231   2              return;
+ 232   2          }
+ 233   1      
+ 234   1          adc0_val = 0;
+ 235   1          adc_sel_pin(ADC_SEL_PIN_GET_TEMP); // 先切换成热敏电阻对应的引脚的adc配置
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 5   
 
- 236   1      #if USE_MY_DEBUG
+ 236   1          // voltage = get_voltage_from_pin();  // 采集热敏电阻上的电压
+ 237   1      
+ 238   1      #if USE_MY_DEBUG
                   printf("PIN-8 voltage: %lu mV\n", voltage);
               #endif // USE_MY_DEBUG
- 239   1      
- 240   1          // 如果之前的温度为正常，检测是否超过75摄氏度（±5摄氏度）
- 241   1          if (TEMP_NORMAL == temp_status && voltage < VOLTAGE_TEMP_75)
- 242   1          {
- 243   2              // 如果检测到温度大于75摄氏度（测得的电压值要小于75摄氏度对应的电压值）
- 244   2      
- 245   2              // 检测10次，如果10次都小于这个电压值，才说明温度真的大于75摄氏度
- 246   2              u8 i = 0;
- 247   2              for (i = 0; i < 10; i++)
- 248   2              {
- 249   3                  voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
- 250   3                  if (voltage > VOLTAGE_TEMP_75)
- 251   3                  {
- 252   4                      // 只要有一次温度小于75摄氏度，就认为温度没有大于75摄氏度
- 253   4                      temp_status = TEMP_NORMAL;
- 254   4                      return;
- 255   4                  }
- 256   3              }
- 257   2      
- 258   2              // 如果运行到这里，说明温度确实大于75摄氏度
- 259   2      #if USE_MY_DEBUG
+ 241   1      
+ 242   1          // 如果之前的温度为正常，检测是否超过75摄氏度（±5摄氏度）
+ 243   1          if (TEMP_NORMAL == temp_status && voltage < VOLTAGE_TEMP_75)
+ 244   1          {
+ 245   2              // 如果检测到温度大于75摄氏度（测得的电压值要小于75摄氏度对应的电压值）
+ 246   2      
+ 247   2              // 检测10次，如果10次都小于这个电压值，才说明温度真的大于75摄氏度
+ 248   2              u8 i = 0;
+ 249   2              for (i = 0; i < 10; i++)
+ 250   2              {
+ 251   3                  voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
+ 252   3                  if (voltage > VOLTAGE_TEMP_75)
+ 253   3                  {
+ 254   4                      // 只要有一次温度小于75摄氏度，就认为温度没有大于75摄氏度
+ 255   4                      temp_status = TEMP_NORMAL;
+ 256   4                      return;
+ 257   4                  }
+ 258   3              }
+ 259   2      
+ 260   2              // 如果运行到这里，说明温度确实大于75摄氏度
+ 261   2      #if USE_MY_DEBUG
                       printf("温度超过了75摄氏度\n");
                       printf("此时采集到的电压值：%lu mV", voltage);
               #endif
- 263   2              temp_status = TEMP_75; // 状态标志设置为超过75摄氏度
- 264   2              __clear_buff();        // 清除9脚电压检测使用到的缓冲区和标志位
- 265   2              return;                // 函数返回，让调节占空比的函数先进行调节
- 266   2          }
- 267   1          else if (temp_status == TEMP_75)
- 268   1          {
- 269   2              // 如果之前的温度超过75摄氏度
- 270   2              static bit tmr1_is_open = 0;
- 271   2      
- 272   2              if (0 == tmr1_is_open)
- 273   2              {
- 274   3                  tmr1_is_open = 1;
- 275   3                  tmr1_cnt = 0;
- 276   3                  tmr1_enable(); // 打开定时器，开始记录是否大于75摄氏度且超过30min
- 277   3              }
- 278   2      
- 279   2              // while (1) // 这个while循环会影响到9脚调节16脚电压的功能
- 280   2              // {
- 281   2      #if 0 // 这里的代码在客户那边反而出现问题，超过90摄氏度且1个小时都没有将PWM降到25%，
+ 265   2              temp_status = TEMP_75; // 状态标志设置为超过75摄氏度
+ 266   2              __clear_buff();        // 清除9脚电压检测使用到的缓冲区和标志位
+ 267   2              return;                // 函数返回，让调节占空比的函数先进行调节
+ 268   2          }
+ 269   1          else if (temp_status == TEMP_75)
+ 270   1          {
+ 271   2              // 如果之前的温度超过75摄氏度
+ 272   2              static bit tmr1_is_open = 0;
+ 273   2      
+ 274   2              if (0 == tmr1_is_open)
+ 275   2              {
+ 276   3                  tmr1_is_open = 1;
+ 277   3                  tmr1_cnt = 0;
+ 278   3                  tmr1_enable(); // 打开定时器，开始记录是否大于75摄氏度且超过30min
+ 279   3              }
+ 280   2      
+ 281   2              // while (1) // 这个while循环会影响到9脚调节16脚电压的功能
+ 282   2              // {
+ 283   2      #if 0 // 这里的代码在客户那边反而出现问题，超过90摄氏度且1个小时都没有将PWM降到25%，
                     // 可能是用户那边的电压有跳变，导致这里清空了定时器计数
                           if (voltage > VOLTAGE_TEMP_75)
                           {
@@ -316,100 +318,104 @@ line level    source
                               return;
                           }
               #endif
- 296   2      
- 297   2              if (tmr1_cnt >= (u32)TMR1_CNT_30_MINUTES)
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 6   
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 6   
 
- 298   2              {
- 299   3                  // 如果超过75摄氏度并且过了30min，再检测温度是否超过75摄氏度
- 300   3      #if USE_MY_DEBUG
+ 298   2              // 如果超过75摄氏度并且过了30min，再检测温度是否超过75摄氏度
+ 299   2              // if (tmr1_cnt >= (u32)TMR1_CNT_30_MINUTES)
+ 300   2              // 如果超过75摄氏度并且过了5min，再检测温度是否超过75摄氏度
+ 301   2              if (tmr1_cnt >= (u32)TMR1_CNT_5_MINUTES)
+ 302   2              {
+ 303   3      
+ 304   3      #if USE_MY_DEBUG
                           printf("温度超过了75摄氏度且超过了30min\n");
                           printf("此时采集到的电压值：%lu mV\n", voltage);
               #endif
- 304   3                  u8 i = 0;
- 305   3                  for (i = 0; i < 10; i++)
- 306   3                  {
- 307   4                      voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
- 308   4                      if (voltage > VOLTAGE_TEMP_75)
- 309   4                      {
- 310   5                          // 只要有一次温度小于75摄氏度，就认为温度没有大于75摄氏度
- 311   5                          temp_status = TEMP_75;
- 312   5                          return;
- 313   5                      }
- 314   4                  }
- 315   3      
- 316   3                  // 如果运行到这里，说明上面连续、多次检测到的温度都大于75摄氏度
- 317   3                  temp_status = TEMP_75_30MIN;
- 318   3                  tmr1_disable(); // 关闭定时器
- 319   3                  tmr1_cnt = 0;   // 清空时间计数值
- 320   3                  tmr1_is_open = 0;
- 321   3                  return;
- 322   3              }
- 323   2              // }  // while(1)
- 324   2          }
- 325   1      }
- 326          
- 327          // 根据温度（电压值扫描）或9脚的状态来设定占空比
- 328          void set_duty(void)
- 329          {
- 330   1          static bit tmr0_is_open = 0;
- 331   1      
- 332   1          // 如果温度正常，根据9脚的状态来调节PWM占空比
- 333   1          if (TEMP_NORMAL == temp_status)
- 334   1          {
- 335   2              if (tmr0_is_open == 0)
- 336   2              {
- 337   3                  tmr0_is_open = 1;
- 338   3                  tmr0_enable(); // 打开定时器0，开始根据9脚的状态来调节PWM脉宽
- 339   3              }
- 340   2      
- 341   2              if (tmr0_flag == 1)
- 342   2              {
- 343   3                  tmr0_flag = 0;
- 344   3                  adc0_val = 0;                     // 清除之前采集到的电压值
- 345   3                  adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
- 346   3                  adc_scan_according_pin9();
- 347   3                  // 设定占空比
- 348   3                  while (c_duty != adjust_duty)
- 349   3                  {
- 350   4                      Adaptive_Duty(); // 调节占空比
- 351   4                  }
- 352   3              }
- 353   2      
- 354   2      #if USE_MY_DEBUG
+ 308   3                  u8 i = 0;
+ 309   3                  for (i = 0; i < 10; i++)
+ 310   3                  {
+ 311   4                      voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
+ 312   4                      if (voltage > VOLTAGE_TEMP_75)
+ 313   4                      {
+ 314   5                          // 只要有一次温度小于75摄氏度，就认为温度没有大于75摄氏度
+ 315   5                          temp_status = TEMP_75;
+ 316   5                          return;
+ 317   5                      }
+ 318   4                  }
+ 319   3      
+ 320   3                  // 如果运行到这里，说明上面连续、多次检测到的温度都大于75摄氏度
+ 321   3                  // temp_status = TEMP_75_30MIN;
+ 322   3                  temp_status = TEMP_75_5_MIN;
+ 323   3                  tmr1_disable(); // 关闭定时器
+ 324   3                  tmr1_cnt = 0;   // 清空时间计数值
+ 325   3                  tmr1_is_open = 0;
+ 326   3                  return;
+ 327   3              }
+ 328   2              // }  // while(1)
+ 329   2          }
+ 330   1      }
+ 331          
+ 332          // 根据温度（电压值扫描）或9脚的状态来设定占空比
+ 333          void set_duty(void)
+ 334          {
+ 335   1          static bit tmr0_is_open = 0;
+ 336   1      
+ 337   1          // 如果温度正常，根据9脚的状态来调节PWM占空比
+ 338   1          if (TEMP_NORMAL == temp_status)
+ 339   1          {
+ 340   2              if (tmr0_is_open == 0)
+ 341   2              {
+ 342   3                  tmr0_is_open = 1;
+ 343   3                  tmr0_enable(); // 打开定时器0，开始根据9脚的状态来调节PWM脉宽
+ 344   3              }
+ 345   2      
+ 346   2              if (tmr0_flag == 1)
+ 347   2              {
+ 348   3                  tmr0_flag = 0;
+ 349   3                  adc0_val = 0;                     // 清除之前采集到的电压值
+ 350   3                  adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
+ 351   3                  adc_scan_according_pin9();
+ 352   3                  // 设定占空比
+ 353   3                  while (c_duty != adjust_duty)
+ 354   3                  {
+ 355   4                      Adaptive_Duty(); // 调节占空比
+ 356   4                  }
+ 357   3              }
+ 358   2      
+ 359   2      #if USE_MY_DEBUG
+C51 COMPILER V9.60.7.0   ADC                                                               08/26/2024 11:52:55 PAGE 7   
+
                       // printf("cur duty: %d\n", c_duty);
               #endif
- 357   2          }
- 358   1          else if (TEMP_75 == temp_status)
- 359   1          {
-C51 COMPILER V9.60.7.0   ADC                                                               07/01/2024 14:07:45 PAGE 7   
-
- 360   2              // 如果温度超过了75摄氏度且累计10min
- 361   2              tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
- 362   2              tmr0_is_open = 0;
- 363   2              // 设定占空比
- 364   2              adjust_duty = PWM_DUTY_50_PERCENT;
- 365   2              while (c_duty != adjust_duty)
- 366   2              {
- 367   3                  Adaptive_Duty(); // 调节占空比
- 368   3              }
- 369   2          }
- 370   1          else if (TEMP_75_30MIN == temp_status)
- 371   1          {
- 372   2              tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
- 373   2              tmr0_is_open = 0;
- 374   2              // 设定占空比
- 375   2              adjust_duty = PWM_DUTY_25_PERCENT;
- 376   2              while (c_duty != adjust_duty)
- 377   2              {
- 378   3                  Adaptive_Duty(); // 调节占空比
- 379   3              }
- 380   2          }
- 381   1      }
+ 362   2          }
+ 363   1          else if (TEMP_75 == temp_status)
+ 364   1          {
+ 365   2              // 如果温度超过了75摄氏度且累计10min
+ 366   2              tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
+ 367   2              tmr0_is_open = 0;
+ 368   2              // 设定占空比
+ 369   2              adjust_duty = PWM_DUTY_50_PERCENT;
+ 370   2              while (c_duty != adjust_duty)
+ 371   2              {
+ 372   3                  Adaptive_Duty(); // 调节占空比
+ 373   3              }
+ 374   2          }
+ 375   1          // else if (TEMP_75_30MIN == temp_status)
+ 376   1          else if (TEMP_75_5_MIN == temp_status)
+ 377   1          {
+ 378   2              tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
+ 379   2              tmr0_is_open = 0;
+ 380   2              // 设定占空比
+ 381   2              adjust_duty = PWM_DUTY_25_PERCENT;
+ 382   2              while (c_duty != adjust_duty)
+ 383   2              {
+ 384   3                  Adaptive_Duty(); // 调节占空比
+ 385   3              }
+ 386   2          }
+ 387   1      }
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =   1635    ----
+   CODE SIZE        =   1634    ----
    CONSTANT SIZE    =   ----    ----
    XDATA SIZE       =     49      22
    PDATA SIZE       =   ----    ----
