@@ -1,4 +1,4 @@
-C51 COMPILER V9.60.7.0   DEBUG                                                             08/26/2024 14:26:32 PAGE 1   
+C51 COMPILER V9.60.7.0   DEBUG                                                             10/14/2024 11:20:30 PAGE 1   
 
 
 C51 COMPILER V9.60.7.0, COMPILATION OF MODULE DEBUG
@@ -59,57 +59,57 @@ line level    source
   48           * @param  uart_data : Data that needs to be sent
   49           * @retval None
   50           */
-  51          void debug_putchar(u8 uart_data)
-  52          {
-  53   1          while (!(UART1_STA & UART_TX_DONE(0x01)))
-C51 COMPILER V9.60.7.0   DEBUG                                                             08/26/2024 14:26:32 PAGE 2   
+  51          // void debug_putchar(u8 uart_data)
+  52          // {
+  53          //     while (!(UART1_STA & UART_TX_DONE(0x01)))
+C51 COMPILER V9.60.7.0   DEBUG                                                             10/14/2024 11:20:30 PAGE 2   
 
-  54   1              ;
-  55   1          UART1_DATA = uart_data;
-  56   1          while (!(UART1_STA & UART_TX_DONE(0x01)))
-  57   1              ;
-  58   1      }
+  54          //         ;
+  55          //     UART1_DATA = uart_data;
+  56          //     while (!(UART1_STA & UART_TX_DONE(0x01)))
+  57          //         ;
+  58          // }
   59          
   60          /**
   61           * @brief  Debug initialization function
   62           * @param  None
   63           * @retval None
   64           */
-  65          void debug_init(void)
-  66          {
-  67   1          // u8 i = 0;
-  68   1      
-  69   1          // // TX---P30(R16)
-  70   1      
-  71   1          // P3_MD0   &= ~GPIO_P30_MODE_SEL(0x03);
-  72   1          // P3_MD0   |=  GPIO_P30_MODE_SEL(0x01);
-  73   1          // FOUT_S30  =  GPIO_FOUT_UART1_TX;
-  74   1      
-  75   1          // UART1_BAUD1 = (((SYSCLK-DEBUG_BAUD)/DEBUG_BAUD) >> 8) & 0xFF;
-  76   1          // UART1_BAUD0 =  ((SYSCLK-DEBUG_BAUD)/DEBUG_BAUD)       & 0xFF;
-  77   1          // UART1_CON0  = UART_EN(0x01);                                    // UART使能
-  78   1      }
+  65          // void debug_init(void)
+  66          // {
+  67          //     // u8 i = 0;
+  68          
+  69          //     // // TX---P30(R16)
+  70          
+  71          //     // P3_MD0   &= ~GPIO_P30_MODE_SEL(0x03);
+  72          //     // P3_MD0   |=  GPIO_P30_MODE_SEL(0x01);
+  73          //     // FOUT_S30  =  GPIO_FOUT_UART1_TX;
+  74          
+  75          //     // UART1_BAUD1 = (((SYSCLK-DEBUG_BAUD)/DEBUG_BAUD) >> 8) & 0xFF;
+  76          //     // UART1_BAUD0 =  ((SYSCLK-DEBUG_BAUD)/DEBUG_BAUD)       & 0xFF;
+  77          //     // UART1_CON0  = UART_EN(0x01);                                    // UART使能
+  78          // }
   79          
   80          /**
   81           * @brief  Debug User printf function
   82           * @param  p_data : The string to send
   83           * @retval None
   84           */
-  85          void user_printf(char *p_data)
-  86          {
-  87   1          while (*p_data != '\0')
-  88   1          {
-  89   2              debug_putchar(*p_data++);
-  90   2          }
-  91   1      }
+  85          // void user_printf(char *p_data)
+  86          // {
+  87          //     while (*p_data != '\0')
+  88          //     {
+  89          //         debug_putchar(*p_data++);
+  90          //     }
+  91          // }
   92          
   93          /*************************** (C) COPYRIGHT 2021 HUGE-IC ***** END OF FILE *****/
 
 
 MODULE INFORMATION:   STATIC OVERLAYABLE
-   CODE SIZE        =     65    ----
+   CODE SIZE        =   ----    ----
    CONSTANT SIZE    =   ----    ----
-   XDATA SIZE       =   ----       3
+   XDATA SIZE       =   ----    ----
    PDATA SIZE       =   ----    ----
    DATA SIZE        =   ----    ----
    IDATA SIZE       =   ----    ----

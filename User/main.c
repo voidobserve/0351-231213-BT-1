@@ -28,6 +28,8 @@ float r_ms = 0;
 // #define USER_BAUD (115200UL)
 // #define USER_UART_BAUD ((SYSCLK - USER_BAUD) / (USER_BAUD))
 
+volatile u8 flag_cur_use_pwm = FLAG_CUR_PWM1_PWM2; // 定义标志位，表示当前使用的pwm
+
 #if USE_MY_DEBUG
 
 #define UART0_BAUD 115200
@@ -73,47 +75,78 @@ void main(void)
     //		FOUT_S14  =  GPIO_FOUT_AF_FUNC;
     ///////////////////////////////////////////
 
-#if 1
+#if 1                 // 用户自定义的初始化
     adc_pin_config(); // 配置使用到adc的引脚
     // adc_sel_pin(ADC_SEL_PIN_GET_TEMP);
     tmr0_config(); // 配置定时器，默认关闭
     pwm_init();    // 配置pwm输出的引脚
     tmr1_config();
+    tmr2_config(); // 配置定时器2，用于rf信号解码
 #endif
 
 // ===================================================================
 #if 1        // 开机缓慢启动（PWM信号变化平缓）
-    P14 = 0; // 16脚先输出低电平
-    c_duty = 0;
-    while (c_duty < 6000)
+    P14 = 0; // 16脚先输出低电平（16脚，对应P14）
+    cur_duty = 0;
+
+    if (FLAG_CUR_PWM1 == flag_cur_use_pwm || FLAG_CUR_PWM2 == flag_cur_use_pwm) // 如果只使用一路PWM，PWM占空比最大能到100%
     {
-        if (jump_flag == 1)
+        while (cur_duty < 6000)
         {
-            break;
+            if (jump_flag == 1)
+            {
+                break;
+            }
+            if (cur_duty < 6000)
+            {
+                mi = (step - 1) / (253 / 3) - 1;
+                step += 0.5;
+                cur_duty = pow(5, mi) * 60;
+            }
+            if (cur_duty >= 6000)
+            {
+                cur_duty = 6000;
+            }
+            // printf("cur_duty %d\n",cur_duty);
+            refresh_pin14_pwm_duty(); // 更新14脚的PWM
+            delay_ms(16); // 每16ms调整一次PWM的脉冲宽度
         }
-        if (c_duty < 6000)
-        {
-            mi = (step - 1) / (253 / 3) - 1;
-            step += 0.5;
-            c_duty = pow(5, mi) * 60;
-        }
-        if (c_duty >= 6000)
-        {
-            c_duty = 6000;
-        }
-        // printf("c_duty %d\n",c_duty);
-        set_pwm_duty();
-        delay_ms(16); // 每16ms调整一次PWM的脉冲宽度
     }
+    else if (FLAG_CUR_PWM1_PWM2 == flag_cur_use_pwm) // 如果使用两路PWM，PWM占空比最大只能到50%
+    {
+        while (cur_duty < 3000)
+        {
+            if (jump_flag == 1)
+            {
+                break;
+            }
+            if (cur_duty < 3000)
+            {
+                mi = (step - 1) / (253 / 3) - 1;
+                step += 0.5;
+                cur_duty = pow(5, mi) * 60;
+            }
+            if (cur_duty >= 3000)
+            {
+                cur_duty = 3000;
+            }
+            // printf("cur_duty %d\n",cur_duty);
+            refresh_pin14_pwm_duty(); // 更新14脚的PWM占空比
+            refresh_pin15_pwm_duty(); // 更新15脚的PWM占空比
+            delay_ms(16); // 每16ms调整一次PWM的脉冲宽度
+        }
+    }
+
 #endif
     // ===================================================================
 
     while (1)
     {
+        
+
         adc_scan();                       // 检测热敏电阻一端的电压值（每次循环，至少要60ms）
         set_duty();                       // 设定到要调节到的脉宽
         according_pin9_to_adjust_pin16(); // 根据9脚的电压来设定16脚的电平
-        // Adaptive_Duty(); // 调节脉宽
     }
 }
 

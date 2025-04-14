@@ -1,5 +1,7 @@
 #include "time0.h"
 
+// tmr0，根据9脚电压来缓慢调节占空比
+
 u8 ms_cnt = 0;
 
 volatile bit tmr0_flag = 0;

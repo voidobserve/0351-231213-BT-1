@@ -5,7 +5,8 @@
 ".\Release\Objects\adc.obj",
 ".\Release\Objects\time0.obj",
 ".\Release\Objects\debug.obj",
-".\Release\Objects\timer1.obj" 
+".\Release\Objects\timer1.obj",
+".\Release\Objects\rfdecode.obj" 
 TO ".\Release\Objects\Demo" 
 PRINT(".\Release\Listings\Demo.m51") RAMSIZE(256) 
 CODE( 0X0000-0X3EEF )

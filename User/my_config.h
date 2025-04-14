@@ -37,4 +37,16 @@ enum
     TEMP_75_5_MIN, // 超过75摄氏度（±5摄氏度）5min
 };
 
+// 定义使用到的PWM的情况
+// 每次开机默认是PWM1+PWM2
+enum
+{
+    FLAG_CUR_PWM1_PWM2, // 使用pwm1 + pwm2，最大占空比为50%
+    FLAG_CUR_PWM1, // 使用pwm1，最大占空比100%
+    FLAG_CUR_PWM2, // 使用pwm2，最大占空比100%
+};
+extern volatile u8 flag_cur_use_pwm; // 定义标志位，表示当前使用的pwm
+
+#include "rfdecode.h"
+
 #endif

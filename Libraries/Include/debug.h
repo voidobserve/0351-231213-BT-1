@@ -67,21 +67,21 @@
   * @param  uart_data : Data that needs to be sent
   * @retval None
   */
-void debug_putchar(u8 uart_data);
+// void debug_putchar(u8 uart_data);
 
 /**
   * @brief  Debug initialization function
   * @param  None
   * @retval None
   */
-void debug_init(void);
+// void debug_init(void);
 
 /**
   * @brief  Debug User printf function
   * @param  p_data : The string to send
   * @retval None
   */
-void user_printf(char *p_data);
+// void user_printf(char *p_data);
 
 
 /**

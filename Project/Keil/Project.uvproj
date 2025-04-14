@@ -426,6 +426,11 @@
               <FileType>1</FileType>
               <FilePath>..\..\User\timer1.c</FilePath>
             </File>
+            <File>
+              <FileName>rfdecode.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\..\User\rfdecode.c</FilePath>
+            </File>
           </Files>
         </Group>
       </Groups>

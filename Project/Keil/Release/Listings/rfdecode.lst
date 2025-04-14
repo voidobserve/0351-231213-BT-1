@@ -1,0 +1,212 @@
+C51 COMPILER V9.60.7.0   RFDECODE                                                          10/14/2024 11:47:03 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE RFDECODE
+OBJECT MODULE PLACED IN .\Release\Objects\rfdecode.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ..\..\User\rfdecode.c LARGE OPTIMIZE(8,SPEED) BROWSE INTVECTOR(0X000C) I
+                    -NCDIR(..\..\Libraries\Include;..\..\User) INTERVAL(3) DEBUG OBJECTEXTEND PRINT(.\Release\Listings\rfdecode.lst) OBJECT(.
+                    -\Release\Objects\rfdecode.obj)
+
+line level    source
+
+   1          #include "rfdecode.h"
+   2          
+   3          // #include <stdbit.h>
+   4          
+   5          // 这里使用tmr2产生50us的中断，扫描rf信号
+   6          
+   7          #define RECV_RF_PIN P00            // 接收rf信号的引脚
+   8          volatile bit is_recv_rf_data = 0;  // 是否接收完成一次rf信号的标志位,0--未接收完成，1-
+             --接收完成
+   9          volatile u32 rf_data = 0xFFFFFFFF; // 存放接收到的rf数据
+  10          
+  11          /**
+  12           * @brief 配置定时器TMR2
+  13           */
+  14          void tmr2_config(void)
+  15          {
+  16   1          __EnableIRQ(TMR2_IRQn); // 使能timer中断
+  17   1          IE_EA = 1;              // 使能总中断
+  18   1      
+  19   1      #define PEROID_VAL (SYSCLK / 128 / 20000 - 1) // 周期值=系统时钟/分频/频率 - 1
+  20   1          // 设置timer的计数功能，配置一个频率为20kHz的中断，50us产生一次中断
+  21   1          TMR_ALLCON = TMR2_CNT_CLR(0x1);                        // 清除计数值
+  22   1          TMR2_PRH = TMR_PERIOD_VAL_H((PEROID_VAL >> 8) & 0xFF); // 周期值
+  23   1          TMR2_PRL = TMR_PERIOD_VAL_L((PEROID_VAL >> 0) & 0xFF);
+  24   1          TMR2_CONH = TMR_PRD_PND(0x1) | TMR_PRD_IRQ_EN(0x1);                          // 计数等于周期时�
+             -��许发生中断
+  25   1          TMR2_CONL = TMR_SOURCE_SEL(0x7) | TMR_PRESCALE_SEL(0x7) | TMR_MODE_SEL(0x1); // 选择系统时钟，1
+             -28分频，计数模式
+  26   1      
+  27   1          TMR2_CONL &= ~(TMR_SOURCE_SEL(0x07)); // 清除定时器的时钟源配置寄存器
+  28   1          TMR2_CONL |= TMR_SOURCE_SEL(0x06);    // 配置定时器的时钟源，使用系统时钟（约21MHz�
+             -�
+  29   1      }
+  30          
+  31          // 扫描rf信号
+  32          void rf_scan(void)
+  33          {
+  34   1          if (is_recv_rf_data)
+  35   1          {
+  36   2              // 处理接收到的rf数据
+  37   2      
+  38   2              is_recv_rf_data = 0;
+  39   2          }
+  40   1      }
+  41          
+  42          // rf信号处理
+  43          void rf_handle(void)
+  44          {
+  45   1      
+  46   1      }
+  47          
+  48          // 定时器TMR中断服务函数
+  49          void TIMR2_IRQHandler(void) interrupt TMR2_IRQn
+C51 COMPILER V9.60.7.0   RFDECODE                                                          10/14/2024 11:47:03 PAGE 2   
+
+  50          {
+  51   1          static bit bit_end;
+  52   1          static u8 Pluse_H_cnt, Pluse_L_cnt; // 高低电平计数
+  53   1          static u8 rf_bit_cnt;               // 数据位计数（总共应为24bits）
+  54   1      
+  55   1          static bit f_levelbuf;
+  56   1          bit flagerror = 0;   // 标志位，表示接收错误
+  57   1          bit flagsuccess = 0; // 标志位，
+  58   1      
+  59   1      #define MAX_PULSE 30
+  60   1      #define MIN_PULSE 3     // 最小脉宽不应小于滤波宽度
+  61   1      #define FILTER_CNT 0X07 // 滤波因数 0b_0111
+  62   1          static u8 filter;
+  63   1          static bit f_level;
+  64   1      
+  65   1          // 进入中断设置IP，不可删除
+  66   1          __IRQnIPnPush(TMR2_IRQn);
+  67   1      
+  68   1          // ---------------- 用户函数处理 -------------------
+  69   1          // 周期中断
+  70   1          if (TMR2_CONH & TMR_PRD_PND(0x1))
+  71   1          {
+  72   2              TMR2_CONH |= TMR_PRD_PND(0x1); // 清除pending
+  73   2      
+  74   2      #if 1
+  75   2              filter <<= 1;
+  76   2              if (RECV_RF_PIN)
+  77   2                  filter |= 0x01;
+  78   2      
+  79   2              filter &= FILTER_CNT;
+  80   2              if (filter == FILTER_CNT)
+  81   2              {
+  82   3                  f_level = 1; // 高电平
+  83   3              }
+  84   2              else if (filter == 0x00)
+  85   2              {
+  86   3                  f_level = 0; // 低电平
+  87   3              }
+  88   2      
+  89   2              if (f_level) // 高电平判断（如果当前是高电平）
+  90   2              {
+  91   3                  if (bit_end) // 一位结束
+  92   3                  {
+  93   4                      bit_end = 0;
+  94   4                      if (Pluse_L_cnt >= MIN_PULSE)
+  95   4                      {
+  96   5                          rf_data <<= 1;
+  97   5                          if (Pluse_H_cnt > Pluse_L_cnt)
+  98   5                          {
+  99   6                              rf_data |= 0x01;
+ 100   6                          }
+ 101   5                          else
+ 102   5                          {
+ 103   6                              rf_data &= ~(0x01);
+ 104   6                          }
+ 105   5                          Pluse_H_cnt = 0;
+ 106   5                      }
+ 107   4                      else // 低电平小于150us认为出错
+ 108   4                      {
+ 109   5                          flagerror = 1;
+ 110   5                      }
+ 111   4                  }
+C51 COMPILER V9.60.7.0   RFDECODE                                                          10/14/2024 11:47:03 PAGE 3   
+
+ 112   3                  else
+ 113   3                  {
+ 114   4                      f_levelbuf = 1;
+ 115   4                      Pluse_H_cnt++;
+ 116   4                      if (Pluse_H_cnt >= MAX_PULSE)
+ 117   4                      {
+ 118   5                          flagerror = 1;
+ 119   5                      }
+ 120   4                      Pluse_L_cnt = 0;
+ 121   4                  }
+ 122   3              }
+ 123   2              else // 低电平判断（如果当前是低电平）
+ 124   2              {
+ 125   3                  Pluse_L_cnt++;
+ 126   3                  if (Pluse_L_cnt >= MAX_PULSE) // 低电平超出最大值
+ 127   3                  {
+ 128   4                      if (rf_bit_cnt != 25)
+ 129   4                      {
+ 130   5                          flagerror = 1;
+ 131   5                          rf_data = 0xFFFFFFFF;
+ 132   5                      }
+ 133   4                      else // 解码成功
+ 134   4                      {
+ 135   5                          rf_data &= 0xFFFFFF; // 只保留低24位的数据，清除之前的数据残留
+ 136   5                          is_recv_rf_data = 1; // 表示接收完成一次数据，让其他任务来扫描该�
+             -�志位，进行相应处理
+ 137   5                          flagsuccess = 1;     //
+ 138   5                      }
+ 139   4                  }
+ 140   3                  else
+ 141   3                  {
+ 142   4                      if (f_levelbuf)
+ 143   4                      {
+ 144   5                          f_levelbuf = 0;
+ 145   5                          Pluse_L_cnt = 0;
+ 146   5                          bit_end = 1;
+ 147   5                          if (Pluse_H_cnt >= MIN_PULSE)
+ 148   5                          {
+ 149   6                              rf_bit_cnt++;
+ 150   6                              if (rf_bit_cnt >= 26)
+ 151   6                              {
+ 152   7                                  flagerror = 1;
+ 153   7                              }
+ 154   6                          }
+ 155   5                          else
+ 156   5                          {
+ 157   6                              flagerror = 1;
+ 158   6                          }
+ 159   5                      }
+ 160   4                  }
+ 161   3              }
+ 162   2      
+ 163   2              if (flagerror || flagsuccess) // 出错/收尾处理
+ 164   2              {
+ 165   3                  rf_bit_cnt = 0;
+ 166   3                  Pluse_H_cnt = 0;
+ 167   3                  Pluse_L_cnt = 0;
+ 168   3                  f_levelbuf = 0;
+ 169   3                  bit_end = 0;
+ 170   3              }
+ 171   2      #endif
+ 172   2          } // if (TMR2_CONH & TMR_PRD_PND(0x1))
+C51 COMPILER V9.60.7.0   RFDECODE                                                          10/14/2024 11:47:03 PAGE 4   
+
+ 173   1      
+ 174   1          // 退出中断设置IP，不可删除
+ 175   1          __IRQnIPnPop(TMR2_IRQn);
+ 176   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    379    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =      8    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      4       2
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

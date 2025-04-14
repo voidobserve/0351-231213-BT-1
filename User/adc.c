@@ -300,12 +300,12 @@ void adc_scan(void)
         // 如果超过75摄氏度并且过了5min，再检测温度是否超过75摄氏度
         if (tmr1_cnt >= (u32)TMR1_CNT_5_MINUTES)
         {
-			u8 i = 0;
+            u8 i = 0;
 #if USE_MY_DEBUG
             printf("温度超过了75摄氏度且超过了30min\n");
             printf("此时采集到的电压值：%lu mV\n", voltage);
 #endif
-            
+
             for (i = 0; i < 10; i++)
             {
                 voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
@@ -350,14 +350,14 @@ void set_duty(void)
             adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
             adc_scan_according_pin9();
             // 设定占空比
-            while (c_duty != adjust_duty)
+            while (cur_duty != adjust_duty)
             {
-                Adaptive_Duty(); // 调节占空比
+                adjust_pwm_duty(); // 调节占空比
             }
         }
 
 #if USE_MY_DEBUG
-        // printf("cur duty: %d\n", c_duty);
+        // printf("cur duty: %d\n", cur_duty);
 #endif
     }
     else if (TEMP_75 == temp_status)
@@ -365,23 +365,50 @@ void set_duty(void)
         // 如果温度超过了75摄氏度且累计10min
         tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
         tmr0_is_open = 0;
+
         // 设定占空比
-        adjust_duty = PWM_DUTY_50_PERCENT;
-        while (c_duty != adjust_duty)
+        if (FLAG_CUR_PWM1 == flag_cur_use_pwm ||
+            FLAG_CUR_PWM2 == flag_cur_use_pwm)
         {
-            Adaptive_Duty(); // 调节占空比
+            adjust_duty = PWM_DUTY_50_PERCENT;
+            while (cur_duty != adjust_duty)
+            {
+                adjust_pwm_duty(); // 调节占空比
+            }
         }
-    }
-    // else if (TEMP_75_30MIN == temp_status)
+        else if (FLAG_CUR_PWM1_PWM2 == flag_cur_use_pwm)
+        {
+            // 如果使用PWM1和PWM2，目前最大的占空比缩小到原来的1/2
+            adjust_duty = PWM_DUTY_50_PERCENT / 2;
+            while (cur_duty != adjust_duty)
+            {
+                adjust_pwm_duty(); // 调节占空比
+            }
+        } // else if (FLAG_CUR_PWM1_PWM2 == flag_cur_use_pwm)
+    } // else if (TEMP_75 == temp_status)
     else if (TEMP_75_5_MIN == temp_status)
     {
         tmr0_disable(); // 关闭定时器0，不以9脚的电压来调节PWM
         tmr0_is_open = 0;
+
         // 设定占空比
-        adjust_duty = PWM_DUTY_25_PERCENT;
-        while (c_duty != adjust_duty)
+        if (FLAG_CUR_PWM1 == flag_cur_use_pwm ||
+            FLAG_CUR_PWM2 == flag_cur_use_pwm)
         {
-            Adaptive_Duty(); // 调节占空比
+            adjust_duty = PWM_DUTY_25_PERCENT;
+            while (cur_duty != adjust_duty)
+            {
+                adjust_pwm_duty(); // 调节占空比
+            }
         }
-    }
+        else if (FLAG_CUR_PWM1_PWM2 == flag_cur_use_pwm)
+        {
+            // 如果使用PWM1和PWM2，目前最大的占空比缩小到原来的1/2
+            adjust_duty = PWM_DUTY_25_PERCENT / 2;
+            while (cur_duty != adjust_duty)
+            {
+                adjust_pwm_duty(); // 调节占空比
+            }
+        } // else if (FLAG_CUR_PWM1_PWM2 == flag_cur_use_pwm)
+    } // else if (TEMP_75_5_MIN == temp_status)
 }
