@@ -103,7 +103,8 @@ void main(void)
         }
         // printf("c_duty %d\n",c_duty);
         set_pwm_duty();
-        delay_ms(16); // 每16ms调整一次PWM的脉冲宽度
+        // delay_ms(16); // 每16ms调整一次PWM的脉冲宽度 
+        delay_ms(11); // 16 * 0.666 约为10.656
     }
 #endif
     // ===================================================================

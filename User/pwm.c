@@ -6,6 +6,8 @@ volatile u16 adjust_duty = 6000; // 最终要调节成的占空比
 bit jump_flag = 0;
 bit max_flag = 0; // 最大占空比的标志位
 
+extern volatile bit flag_is_pin_9_vol_bounce; // 标志位，9脚电压是否发生了跳动
+
 void pwm_init(void)
 {
     STMR_CNTCLR |= STMR_0_CNT_CLR(0x1);
@@ -52,13 +54,22 @@ void _My_Adjust_Pwm(float Val)
 
     // // 当9脚电压高于1.9V时，14脚输出100%的PWM信号
     // if (P9_Vol > 1.90) // 输出100%
-    
-    // 当9脚电压大于1.6V时，14脚输出100%的PWM信号
-    if (P9_Vol > 1.6) // 输出100%
+
+    // 当9脚电压大于1.6V时，14脚输出100%的PWM信号，但是9脚电压发生跳动时，不让14脚输出100%的PWM信号，而是50%
+    if (P9_Vol > 1.6) // 大于1.6V
     {
         //	printf(" P9_Vol : %f.... 100\n",P9_Vol);
-        adjust_duty = PWM_DUTY_100_PERCENT;
-        max_flag = 1;
+
+        if (flag_is_pin_9_vol_bounce) // 如果9脚电压发生了跳动
+        {
+            adjust_duty = PWM_DUTY_50_PERCENT;
+            max_flag = 0; // 表示pwm占空比没有到最大值
+        }
+        else
+        {
+            adjust_duty = PWM_DUTY_100_PERCENT;
+            max_flag = 1;
+        }
     }
     // else if (P9_Vol > 1.6 && P9_Vol < 1.9) // 缓降80%
     // {
@@ -95,7 +106,8 @@ void _My_Adjust_Pwm(float Val)
 
     ///////////////控制16脚//////////////////
     // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通。
-    if (P9_Vol > 2.7) // 16脚输出1KHZ的高电平
+    // if (P9_Vol > 2.7) // 16脚输出1KHZ的高电平
+    if (P9_Vol > 3.6) // 16脚输出1KHZ的高电平  （过压保护从2.7V提高到3.6V）
     {
         P14 = 1;
     }
@@ -113,6 +125,7 @@ void according_pin9_to_adjust_pin16(void)
     volatile u32 adc_aver_val = 0;    // 存放adc滤波后的值
     adc_sel_pin(ADC_SEL_PIN_GET_VOL); // 切换到9脚对应的adc配置
 
+#if 0  // 过压保护为2.7V的版本
     // 采集电压
     for (i = 0; i < 10; i++)
     {
@@ -134,11 +147,37 @@ void according_pin9_to_adjust_pin16(void)
     {
         P14 = 0;
     }
+#endif // 过压保护为2.7V的版本
+
+#if 1 // 过压保护为 3.6V的版本
+    // 采集电压
+    for (i = 0; i < 10; i++)
+    {
+        adc_aver_val = get_voltage_from_pin();
+        if (adc_aver_val >= 3600)
+        {
+            // 如果从9脚上采集的电压大于 3.6 V
+            cnt++;
+        }
+    }
+
+    // 当9脚电压高于 3.6 V时，16脚输出1KHz 高电平,用于控制Q2的导通（用于关机）。
+    if (cnt == 10)
+    {
+        // 如果多次检测都满足条件，才认为9脚的电压确实大于 3.6 V
+        P14 = 1;
+    }
+    else
+    {
+        P14 = 0;
+    }
+#endif // 过压保护为 3.6V的版本
 }
 
 // 缓慢调节占空比（缓慢提升和缓慢下降）
 void Adaptive_Duty(void)
 {
+#if 0  // 缓慢调节占空比的版本：
     if (c_duty > adjust_duty)
     {
         c_duty--;
@@ -147,7 +186,7 @@ void Adaptive_Duty(void)
     {
         c_duty++;
     }
-    set_pwm_duty();
+    set_pwm_duty(); // 函数内部会将 c_duty 的值代入相关寄存器中
 
     if (c_duty >= 5800)
     {
@@ -160,4 +199,12 @@ void Adaptive_Duty(void)
         // delay_ms(5);
         delay_ms(3);
     }
+#endif // 缓慢调节占空比的版本
+
+#if 1 // 立即调节占空比的版本：
+
+    c_duty = adjust_duty;
+    set_pwm_duty(); // 函数内部会将 c_duty 的值代入相关寄存器中
+
+#endif // 立即调节占空比的版本
 }

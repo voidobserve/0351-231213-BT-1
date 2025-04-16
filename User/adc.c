@@ -11,6 +11,8 @@ volatile u16 adc0_val; // adc采集到的电压值
 // 存放温度状态的变量
 volatile u8 temp_status = TEMP_NORMAL;
 
+volatile bit flag_is_pin_9_vol_bounce; // 标志位，9脚电压是否发生了跳动
+
 // 冒泡排序（升序）
 void Pubble_Sort(u16 *arr, u8 length)
 {
@@ -118,6 +120,45 @@ void adc_scan_according_pin9(void)
         ;                                             // 等待转换完成
     ADC_STA = ADC_CHAN0_DONE(0x1);                    // 清除ADC0转换完成标志位
     adc0_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取channel0的值
+
+    /*
+        判断ad值是否从2.5V跳变到3.5V，如果有，把PWM占空比降到50%
+        若检测到一次电压落在阈值内，给 flag_filter 低位置一
+    */
+    {
+        static u16 flag_filter = 0;
+        u16 tmp = adc0_val; // 参考电压为VCC，假设VCC为5V
+        u8 cnt = 0;
+        flag_filter <<= 1;
+        // if (tmp >= 2130 && tmp <= 2703) // 如果电压在 2.6V (2129.92)  ~ 3.3V (2703.36)，说明电压有跳动
+        if (tmp >= (2130) && tmp <= (2867)) // 如果电压在 2.5V (2048)  ~ 3.5V (2867)，说明电压有跳动（实际加入了死区 2.6 - 3.5 ）
+        {
+            flag_filter |= 0x01;
+        }
+        else
+        {
+        }
+
+        {
+            u8 i;
+            for (i = 0; i < 8; i++)
+            {
+                if (((flag_filter >> i) & 0x01) == 0x01) // 如果有一位为1
+                {
+                    cnt++;
+                }
+            }
+        }
+
+        if (cnt >= 3) // 如果 flag_filter 记录有超过3位的1，说明电压有跳动
+        {
+            flag_is_pin_9_vol_bounce = 1;
+        }
+        else if (cnt == 0) // 如果全为0，清除电压有跳动相关的标志
+        {
+            flag_is_pin_9_vol_bounce = 0;
+        }
+    }
 
     // 判断ad值是否跳变，跳变了放在跳变的数组，未跳变放在正常值数组    0.5v换算ad值大概是400左右，因此设定100   0.12v
     if (((adc0_val - Vol_val) > 100) || ((Vol_val - adc0_val) > 100))
@@ -300,12 +341,12 @@ void adc_scan(void)
         // 如果超过75摄氏度并且过了5min，再检测温度是否超过75摄氏度
         if (tmr1_cnt >= (u32)TMR1_CNT_5_MINUTES)
         {
-			u8 i = 0;
+            u8 i = 0;
 #if USE_MY_DEBUG
             printf("温度超过了75摄氏度且超过了30min\n");
             printf("此时采集到的电压值：%lu mV\n", voltage);
 #endif
-            
+
             for (i = 0; i < 10; i++)
             {
                 voltage = get_voltage_from_pin(); // 采集热敏电阻上的电压
@@ -343,7 +384,7 @@ void set_duty(void)
             tmr0_enable(); // 打开定时器0，开始根据9脚的状态来调节PWM脉宽
         }
 
-        if (tmr0_flag == 1)
+        if (tmr0_flag == 1) // 每25ms进入一次
         {
             tmr0_flag = 0;
             adc0_val = 0;                     // 清除之前采集到的电压值
