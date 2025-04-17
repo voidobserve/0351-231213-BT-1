@@ -12,6 +12,9 @@
 // void adc_init();
 void adc_scan_according_pin9(); // 采集一次adc值，如果累计采集了10次跳变/未跳变的adc值，则进行滤波，再根据滤波后的结果进行PWM调节
 
+// 获取一次adc采集+滤波后的值
+u16 adc_get_val(void);
+
 void adc_pin_config(void);      // adc相关的引脚配置，调用完成后，还未能使用adc
 void adc_sel_pin(const u8 pin); // 切换adc采集的引脚，并配置好adc
 void adc_single_getval(void);   // adc完成一次转换

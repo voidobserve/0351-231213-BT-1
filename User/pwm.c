@@ -41,9 +41,11 @@ void set_pwm_duty(void)
 }
 
 // 根据9脚的电压来调节PWM
-void _My_Adjust_Pwm(float Val)
+// void _My_Adjust_Pwm(float Val)
+void _My_Adjust_Pwm(u16 Val)
 {
-    float P9_Vol = Val * 0.0012;
+    // float P9_Vol = Val * 0.0012;
+    u16 P9_Vol = Val;
 
 #if USE_MY_DEBUG
     printf("9脚检测到的电压： %f V\n", P9_Vol);
@@ -57,7 +59,8 @@ void _My_Adjust_Pwm(float Val)
 
     // 当9脚电压大于1.6V时，14脚输出100%的PWM信号，但是9脚电压发生跳动时，不让14脚输出100%的PWM信号，而是50%
     // if (P9_Vol > 1.6) // 大于1.6V
-    if (P9_Vol > 1.5) // 大于1.5V
+    // if (P9_Vol > 1.5) // 大于1.5V
+    if (P9_Vol > 1463) // 大于 1.5V （1462.86）
     {
         //	printf(" P9_Vol : %f.... 100\n",P9_Vol);
 
@@ -93,7 +96,8 @@ void _My_Adjust_Pwm(float Val)
     //         jump_flag = 1;
     // }
     // else if (P9_Vol < 1.6) // 缓降50%  并且维持50%   9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
-    else if (P9_Vol < 1.5) // 50%  并且维持50%
+    // else if (P9_Vol < 1.5) // 50%  并且维持50%
+    else if (P9_Vol < 1463) // 50%  并且维持50%
     {
         // printf(" P9_Vol : %f...... 50\n",P9_Vol);
         // adjust_duty = 3000;
@@ -106,7 +110,8 @@ void _My_Adjust_Pwm(float Val)
     ///////////////控制16脚//////////////////
     // 当9脚电压高于2.7V时，16脚输出1KHz 高电平,用于控制Q2的导通。
     // if (P9_Vol > 2.7) // 16脚输出1KHZ的高电平
-    if (P9_Vol > 3.6) // 16脚输出1KHZ的高电平  （过压保护从2.7V提高到3.6V）
+    // if (P9_Vol > 3.6) // 16脚输出1KHZ的高电平  （过压保护从2.7V提高到3.6V）
+    if (P9_Vol > 3511) // 16脚输出1KHZ的高电平  （过压保护从2.7V提高到3.6V）
     {
         P14 = 1;
     }
@@ -152,8 +157,10 @@ void according_pin9_to_adjust_pin16(void)
     // 采集电压
     for (i = 0; i < 10; i++)
     {
-        adc_aver_val = get_voltage_from_pin();
-        if (adc_aver_val >= 3600)
+        // adc_aver_val = get_voltage_from_pin();
+        adc_aver_val = adc_get_val(); // 函数内部会求平均值
+        // if (adc_aver_val >= 3600)
+        if (adc_aver_val >= 3511)
         {
             // 如果从9脚上采集的电压大于 3.6 V
             cnt++;

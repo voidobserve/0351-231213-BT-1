@@ -1,7 +1,8 @@
 #include "adc.h"
 #include "my_config.h"
 
-float Vol_val = 0;
+// float Vol_val = 0;
+u16 Vol_val = 0;
 u16 Vol_val_all[10];   // 存放ad值正常的数组
 u16 Vol_val_jump[10];  // 存放ad值跳变的数组
 u8 index_jump = 0;     // 跳变的数组的元素计数值
@@ -56,7 +57,7 @@ void adc_sel_pin(const u8 adc_sel)
     case ADC_SEL_PIN_GET_TEMP: // 采集热敏电阻对应的电压的引脚（8脚）
 
         // ADC配置
-        ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0) | ADC_INREF_SEL(0)); // 关闭外部参考电压，关闭内部参考电压
+        ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0) | ADC_INREF_SEL(0)); // 关闭外部参考电压
         ADC_ACON1 |= ADC_VREF_SEL(0x6) |                                         // 选择内部参考电压VCCA
                      ADC_TEN_SEL(0x3);                                           // 关闭测试信号
         ADC_ACON0 = ADC_CMP_EN(0x1) |                                            // 打开ADC中的CMP使能信号
@@ -72,9 +73,11 @@ void adc_sel_pin(const u8 adc_sel)
     case ADC_SEL_PIN_GET_VOL: // 检测回路电压的引脚（9脚）
 
         // ADC配置
-        ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0) | ADC_INREF_SEL(0)); // 关闭外部参考电压
-        ADC_ACON1 |= ADC_VREF_SEL(0x6) |                                         // 选择内部参考电压VCCA
-                     ADC_TEN_SEL(0x3);
+        ADC_ACON1 &= ~(ADC_VREF_SEL(0x7) | ADC_EXREF_SEL(0x01)); // 关闭外部参考电压
+        // ADC_ACON1 |= ADC_VREF_SEL(0x6) |                                         // 选择内部参考电压VCCA
+        //              ADC_TEN_SEL(0x3);
+        ADC_ACON1 |= ADC_VREF_SEL(0x5) |   // 选择内部参考电压 4.2V (用户手册说未校准)
+                     ADC_TEN_SEL(0x3);     /* 关闭测试信号 */
         ADC_ACON0 = ADC_CMP_EN(0x1) |      // 打开ADC中的CMP使能信号
                     ADC_BIAS_EN(0x1) |     // 打开ADC偏置电流能使信号
                     ADC_BIAS_SEL(0x1);     // 偏置电流：1x
@@ -82,6 +85,7 @@ void adc_sel_pin(const u8 adc_sel)
                    ADC_EXT_SEL(0x0);       // 选择外部通道
         ADC_CFG0 |= ADC_CHAN0_EN(0x1) |    // 使能通道0转换
                     ADC_EN(0x1);           // 使能A/D转换
+
         break;
     }
 
@@ -98,6 +102,41 @@ void adc_single_getval(void)
         ;                                             // 等待转换完成
     adc0_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取channel0的值
     ADC_STA = ADC_CHAN0_DONE(0x1);                    // 清除ADC0转换完成标志位
+}
+
+// 获取一次adc采集+滤波后的值
+u16 adc_get_val(void)
+{
+    u8 i = 0; // adc采集次数的计数
+    volatile u16 g_temp_value = 0;
+    volatile u32 g_tmpbuff = 0;
+    volatile u16 g_adcmax = 0;
+    volatile u16 g_adcmin = 0xFFFF;
+
+    // 采集20次，去掉前两次采样，再去掉一个最大值和一个最小值，再取平均值
+    for (i = 0; i < 20; i++)
+    {
+        ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+        while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
+            ;                                                 // 等待转换完成
+        g_temp_value = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取 channel0 的值
+        ADC_STA = ADC_CHAN0_DONE(0x1);                        // 清除ADC0转换完成标志位
+
+        if (i < 2)
+            continue; // 丢弃前两次采样的
+        if (g_temp_value > g_adcmax)
+            g_adcmax = g_temp_value; // 最大
+        if (g_temp_value < g_adcmin)
+            g_adcmin = g_temp_value; // 最小
+
+        g_tmpbuff += g_temp_value;
+    }
+
+    g_tmpbuff -= g_adcmax;           // 去掉一个最大
+    g_tmpbuff -= g_adcmin;           // 去掉一个最小
+    g_temp_value = (g_tmpbuff >> 4); // 除以16，取平均值
+
+    return g_temp_value;
 }
 
 // 清除缓冲区以及标志位
@@ -127,12 +166,10 @@ void adc_scan_according_pin9(void)
     */
     {
         static u16 flag_filter = 0;
-        u16 tmp = adc0_val; // 参考电压为VCC，假设VCC为5V
+        u16 tmp = adc0_val; // 参考电压为4.2V
         u8 cnt = 0;
         flag_filter <<= 1;
-        // if (tmp >= 2130 && tmp <= 2703) // 如果电压在 2.6V (2129.92)  ~ 3.3V (2703.36)，说明电压有跳动
-        // if (tmp >= (2130) && tmp <= (2867)) // 如果电压在 2.5V (2048)  ~ 3.5V (2867)，说明电压有跳动（实际加入了死区 2.6 - 3.5 ）
-        if (tmp >= (2212) && tmp <= (2867)) // 如果电压在 2.7V (2211.84)  ~ 3.5V (2867)，说明电压有跳动
+        if (tmp >= (2633) && tmp <= (3413)) // 如果电压在 2.7V (2633.14)  ~ 3.5V (3413.33)，说明电压有跳动
         {
             flag_filter |= 0x01;
         }
@@ -162,7 +199,8 @@ void adc_scan_according_pin9(void)
     }
 
     // 判断ad值是否跳变，跳变了放在跳变的数组，未跳变放在正常值数组    0.5v换算ad值大概是400左右，因此设定100   0.12v
-    if (((adc0_val - Vol_val) > 100) || ((Vol_val - adc0_val) > 100))
+    // 判断ad值是否跳变，跳变了放在跳变的数组，未跳变放在正常值数组   如果使用4.2V内部参考电压 0.5v换算ad值大概是487.6左右，因此设定117   0.12v
+    if (((adc0_val - Vol_val) > 117) || ((Vol_val - adc0_val) > 117))
     {
         Vol_val_jump[index_jump] = adc0_val;
         index_jump++;

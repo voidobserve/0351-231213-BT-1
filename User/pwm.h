@@ -18,7 +18,8 @@ enum
 };
 
 void pwm_init(void);
-void _My_Adjust_Pwm(float Val);
+// void _My_Adjust_Pwm(float Val);
+void _My_Adjust_Pwm(u16 Val);
 void set_pwm_duty(void);
 void Adaptive_Duty(void);
 
