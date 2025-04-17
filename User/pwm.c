@@ -6,7 +6,7 @@ volatile u16 adjust_duty = 6000; // 最终要调节成的占空比
 bit jump_flag = 0;
 bit max_flag = 0; // 最大占空比的标志位
 
-extern volatile bit flag_is_pin_9_vol_bounce; // 标志位，9脚电压是否发生了跳动
+extern volatile bit flag_is_pin_9_vol_bounce; // 标志位，9脚电压是否发生了跳动（是否因为发动机功率不稳定导致跳动）
 
 void pwm_init(void)
 {
@@ -56,7 +56,8 @@ void _My_Adjust_Pwm(float Val)
     // if (P9_Vol > 1.90) // 输出100%
 
     // 当9脚电压大于1.6V时，14脚输出100%的PWM信号，但是9脚电压发生跳动时，不让14脚输出100%的PWM信号，而是50%
-    if (P9_Vol > 1.6) // 大于1.6V
+    // if (P9_Vol > 1.6) // 大于1.6V
+    if (P9_Vol > 1.5) // 大于1.5V
     {
         //	printf(" P9_Vol : %f.... 100\n",P9_Vol);
 
@@ -91,11 +92,9 @@ void _My_Adjust_Pwm(float Val)
     //     if (c_duty >= adjust_duty)
     //         jump_flag = 1;
     // }
-    else if (P9_Vol < 1.6) // 缓降50%  并且维持50%
+    // else if (P9_Vol < 1.6) // 缓降50%  并且维持50%   9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
+    else if (P9_Vol < 1.5) // 50%  并且维持50%
     {
-        // 9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
-
-        // 9脚电压小于1.6V，14脚输出的占空比缓降至50%，并保持50%
         // printf(" P9_Vol : %f...... 50\n",P9_Vol);
         // adjust_duty = 3000;
         adjust_duty = PWM_DUTY_50_PERCENT;
