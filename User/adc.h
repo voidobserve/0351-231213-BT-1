@@ -15,6 +15,7 @@ void adc_scan_according_pin9(); // ²É¼¯Ò»´ÎadcÖµ£¬Èç¹ûÀÛ¼Æ²É¼¯ÁË10´ÎÌø±ä/Î´Ìø±äµ
 void adc_pin_config(void);      // adcÏà¹ØµÄÒı½ÅÅäÖÃ£¬µ÷ÓÃÍê³Éºó£¬»¹Î´ÄÜÊ¹ÓÃadc
 void adc_sel_pin(const u8 pin); // ÇĞ»»adc²É¼¯µÄÒı½Å£¬²¢ÅäÖÃºÃadc
 void adc_single_getval(void);   // adcÍê³ÉÒ»´Î×ª»»
+u16  adc_get_val(void);
 
 u32 get_voltage_from_pin(void); // ´ÓÒı½ÅÉÏ²É¼¯ÂË²¨ºóµÄµçÑ¹Öµ
 

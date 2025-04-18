@@ -46,6 +46,7 @@ void adc_pin_config(void)
 // 参数可以选择：
 // ADC_SEL_PIN_GET_TEMP
 // ADC_SEL_PIN_GET_VOL
+// 注意客户那边测试VCC为 4.87V，由78L05得到的5V电压，带误差
 void adc_sel_pin(const u8 adc_sel)
 {
     // 切换采集引脚时，把之前采集到的ad值清空
@@ -100,6 +101,43 @@ void adc_single_getval(void)
     ADC_STA = ADC_CHAN0_DONE(0x1);                    // 清除ADC0转换完成标志位
 }
 
+/**
+ * @brief 获取一次滤波后的ad值
+ *
+ * @return u16 0-4095
+ */
+u16 adc_get_val(void)
+{
+    u8 i = 0; // adc采集次数的计数
+    u16 g_temp_value = 0;
+    u32 g_tmpbuff = 0;
+    u16 g_adcmax = 0;
+    u16 g_adcmin = 0xFFFF;
+
+    // 采集20次，去掉前两次采样，再去掉一个最大值和一个最小值，再取平均值
+    for (i = 0; i < 20; i++)
+    {
+        ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+        while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
+            ;                                                 // 等待转换完成
+        g_temp_value = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取channel0的值
+        ADC_STA = ADC_CHAN0_DONE(0x1);                        // 清除ADC0转换完成标志位
+
+        if (i < 2)
+            continue; // 丢弃前两次采样的
+        if (g_temp_value > g_adcmax)
+            g_adcmax = g_temp_value; // 最大
+        if (g_temp_value < g_adcmin)
+            g_adcmin = g_temp_value; // 最小
+        g_tmpbuff += g_temp_value;
+    }
+
+    g_tmpbuff -= g_adcmax;           // 去掉一个最大
+    g_tmpbuff -= g_adcmin;           // 去掉一个最小
+    g_temp_value = (g_tmpbuff >> 4); // 除以16，取平均值
+    return g_temp_value;
+}
+
 // 清除缓冲区以及标志位
 // 在不根据9脚电压来调节PWM占空比时使用
 void __clear_buff(void)
@@ -115,11 +153,12 @@ void __clear_buff(void)
 // 采集一次adc值，如果累计采集了10次跳变/未跳变的adc值，则进行滤波，再根据滤波后的结果进行PWM调节
 void adc_scan_according_pin9(void)
 {
-    ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
-    while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
-        ;                                             // 等待转换完成
-    ADC_STA = ADC_CHAN0_DONE(0x1);                    // 清除ADC0转换完成标志位
-    adc0_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取channel0的值
+    // ADC_CFG0 |= ADC_CHAN0_TRG(0x1); // 触发ADC0转换
+    // while (!(ADC_STA & ADC_CHAN0_DONE(0x1)))
+    //     ;                                             // 等待转换完成
+    // ADC_STA = ADC_CHAN0_DONE(0x1);                    // 清除ADC0转换完成标志位
+    // adc0_val = (ADC_DATAH0 << 4) | (ADC_DATAL0 >> 4); // 读取channel0的值
+    adc0_val = adc_get_val();
 
     /*
         判断ad值是否从2.5V跳变到3.5V，如果有，把PWM占空比降到50%
@@ -132,7 +171,8 @@ void adc_scan_according_pin9(void)
         flag_filter <<= 1;
         // if (tmp >= 2130 && tmp <= 2703) // 如果电压在 2.6V (2129.92)  ~ 3.3V (2703.36)，说明电压有跳动
         // if (tmp >= (2130) && tmp <= (2867)) // 如果电压在 2.5V (2048)  ~ 3.5V (2867)，说明电压有跳动（实际加入了死区 2.6 - 3.5 ）
-        if (tmp >= (2212) && tmp <= (2867)) // 如果电压在 2.7V (2211.84)  ~ 3.5V (2867)，说明电压有跳动
+        // if (tmp >= (2212) && tmp <= (2867)) // 如果电压在 2.7V (2211.84)  ~ 3.5V (2867)，说明电压有跳动
+        if (tmp >= (2355) && tmp <= (2945)) // 假设VCC为 4.87V, 2.8V(2354.99) , 3.5V(2943.74)
         {
             flag_filter |= 0x01;
         }

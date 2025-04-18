@@ -57,7 +57,7 @@ void _My_Adjust_Pwm(float Val)
 
     // 当9脚电压大于1.6V时，14脚输出100%的PWM信号，但是9脚电压发生跳动时，不让14脚输出100%的PWM信号，而是50%
     // if (P9_Vol > 1.6) // 大于1.6V
-    if (P9_Vol > 1.5) // 大于1.5V
+    if (P9_Vol > (1.5 + 0.0025)) // 大于1.5V
     {
         //	printf(" P9_Vol : %f.... 100\n",P9_Vol);
 
@@ -93,7 +93,7 @@ void _My_Adjust_Pwm(float Val)
     //         jump_flag = 1;
     // }
     // else if (P9_Vol < 1.6) // 缓降50%  并且维持50%   9脚电压小于1.6V，14输出的占空比从80%缓降到50%，并保持50%
-    else if (P9_Vol < 1.5) // 50%  并且维持50%
+    else if (P9_Vol < (1.5 - 0.0025)) // 50%  并且维持50%
     {
         // printf(" P9_Vol : %f...... 50\n",P9_Vol);
         // adjust_duty = 3000;
